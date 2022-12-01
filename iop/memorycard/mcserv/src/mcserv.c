@@ -827,16 +827,23 @@ int _McGetInfo(void *rpc_buf)
 	mc_free = 0;
 
 	r = McDetectCard(dP->port, dP->slot);
-
+    DPRINTF(" McDetectCard(dP->port, dP->slot) returns %d\n", r);
 	if (dP->size > 0)
+    {
 		eP.type = McGetMcType(dP->port, dP->slot);
+        DPRINTF("McGetMcType(dP->port, dP->slot) returns %d\n", eP.type);
+    }
 
 	eP.free = 0;
 	if (r >= -1) {
 		if (dP->offset == 0)
+        {
+            DPRINTF("dP->offset is 0, jumping to dma_transfer\n");
 			goto dma_transfer;
+        }
 
 		mc_free = McGetFreeClusters(dP->port, dP->slot);
+        DPRINTF(" McGetFreeClusters(dP->port, dP->slot) returns %d\n", mc_free);
 		if (mc_free >= 0)
 			eP.free = mc_free;
 	}
@@ -876,19 +883,23 @@ int _McGetInfo2(void *rpc_buf)
 	mc_free = 0;
 
 	r = McDetectCard2(dP->port, dP->slot);
-
+    DPRINTF("McDetectCard2(dP->port, dP->slot) returns %d\n", r);
 	if (dP->origin > 0)
+    {
 		eP.type = McGetMcType(dP->port, dP->slot);
-
+        DPRINTF("McGetMcType(dP->port, dP->slot) returns %d\n", eP.type);
+    }
+    
 	if (r < -1) {
 		eP.free = 0;
 		eP.formatted = 0;
+        DPRINTF("r is less than -1, jumping to dma_transfer\n");
 		goto dma_transfer;
 	}
 
 	if (dP->offset > 0) {
 		mc_free = McGetFreeClusters(dP->port, dP->slot);
-
+        DPRINTF("McGetFreeClusters(dP->port, dP->slot) returns %d\n", mc_free);
 		if (mc_free < 0)
 			eP.free = 0;
 		else
@@ -899,10 +910,11 @@ int _McGetInfo2(void *rpc_buf)
 		eP.formatted = 0;
 		if (McGetFormat(dP->port, dP->slot) > 0)
 			eP.formatted = 1;
+        DPRINTF("eP.formatted = %d\n", eP.formatted );
 	}
 
 dma_transfer:
-
+DPRINTF("dma_transfer starts\n");
 	dmaStruct.src = (void *)&eP;
 	dmaStruct.dest = (void *)dP->param;
 	dmaStruct.size = sizeof (mcEndParam2_t);
