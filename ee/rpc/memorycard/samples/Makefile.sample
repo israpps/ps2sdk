@@ -9,7 +9,7 @@
 EE_BIN = mc_example.elf
 EE_OBJS = mc_example.o
 EE_LIBS = -lmc -lc
-
+EE_CFLAGS += -DNEWLIB_PORT_AWARE
 all: $(EE_BIN)
 
 clean:
