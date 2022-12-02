@@ -8,35 +8,46 @@ on:
 
 jobs:
   build:
+    strategy:
+      matrix:
+        debug: [all, debug]
     runs-on: ubuntu-latest
     container: ps2dev/ps2toolchain:latest
     steps:
-    - uses: actions/checkout@v2
+      - uses: actions/checkout@v2
 
-    - name: Install dependencies
-      run: |
-        apk add build-base git
+      - name: Install dependencies
+        run: |
+          apk add build-base git bash
 
-    - name: Compile project
-      run: |
-        make clean all install
-        ln -sf "$PS2SDK/ee/lib/libps2sdkc.a" "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libps2sdkc.a"
-        ln -sf "$PS2SDK/ee/lib/libkernel.a"  "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libkernel.a"
-        ln -sf "$PS2SDK/ee/lib/libcdvd.a"  "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libcdvd.a"
-        
-    - name: Compile samples
-      if: ${{ success() }}
-      run: |
-        cp -rv $PS2SDK/samples ~/
-        make -C ~/samples
-    
-    - name: Get short SHA
-      id: slug
-      run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
+      - name: Compile project ${{ matrix.debug }}
+        run: |
+          make clean ${{ matrix.debug }} install
+          ln -sf "$PS2SDK/ee/lib/libcglue.a" "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libcglue.a"
+          ln -sf "$PS2SDK/ee/lib/libpthreadglue.a" "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libpthreadglue.a"
+          ln -sf "$PS2SDK/ee/lib/libkernel.a"  "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libkernel.a"
+          ln -sf "$PS2SDK/ee/lib/libcdvd.a"  "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libcdvd.a"
+          
+      - name: Compile samples
+        if: ${{ success() }}
+        run: |
+          cp -rv $PS2SDK/samples ~/
+          make -C ~/samples
+          mkdir ~/IOP      
+      - name: move IRX
+        if: ${{ success() }}
+        run: |
+          mv $PS2SDK/iop/irx/ ~/IOP/
 
-    - name: Upload artifacts
-      if: ${{ success() }}
-      uses: actions/upload-artifact@v2
-      with:
-        name: ps2sdk-samples-${{ steps.slug.outputs.sha8 }}
-        path: ~/samples
+      - name: Get short SHA
+        id: slug
+        run: echo "::set-output name=sha8::$(echo ${GITHUB_SHA} | cut -c1-8)"
+
+      - name: Upload artifacts
+        if: ${{ success() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: ps2sdk-samples-${{ matrix.debug }}-${{ steps.slug.outputs.sha8 }}
+          path: |
+            ~/samples
+            ~/IOP/
