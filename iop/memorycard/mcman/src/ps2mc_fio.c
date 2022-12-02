@@ -522,7 +522,7 @@ int mcman_read2(int fd, void *buffer, int nbyte)
 				if (r != sceMcResSucceed)
 					return r;
 
-				memcpy((void *)((u8 *)buffer + rpos), (void *)((u8 *)(mce->cl_data) + offset), size);
+				memcpy((void *)(buffer + rpos), (void *)(mce->cl_data + offset), size);
 
 				rpos += size;
 				mce->rd_flag = 1;
@@ -592,7 +592,7 @@ int mcman_write2(int fd, void *buffer, int nbyte)
 			else
 				size = nbyte;
 
-			memcpy((void *)((u8 *)(mce->cl_data) + offset), (void *)((u8 *)buffer + wpos), size);
+			memcpy((void *)(mce->cl_data + offset), (void *)(buffer + wpos), size);
 
 			mce->wr_flag = 1;
 
