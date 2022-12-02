@@ -28,7 +28,7 @@ jobs:
           ln -sf "$PS2SDK/ee/lib/libkernel.a"  "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libkernel.a"
           ln -sf "$PS2SDK/ee/lib/libcdvd.a"  "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libcdvd.a"
           mkdir ~/IOP
-          cp $PS2SDK/iop/irx/ ~/IOP/
+          mv $PS2SDK/iop/irx/ ~/IOP/
           
       - name: Compile samples
         if: ${{ success() }}
