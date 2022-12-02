@@ -32,6 +32,11 @@ jobs:
         run: |
           cp -rv $PS2SDK/samples ~/
           make -C ~/samples
+          
+      - name: move IRX
+        if: ${{ success() }}
+        run: |
+          mv $PS2SDK/iop/irx/ ~/IOP/
 
       - name: Get short SHA
         id: slug
@@ -42,4 +47,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: ps2sdk-samples-${{ matrix.debug }}-${{ steps.slug.outputs.sha8 }}
-          path: ~/samples
+          path: |
+            ~/samples
+            ~/IOP/
+
