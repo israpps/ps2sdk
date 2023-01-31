@@ -11,8 +11,6 @@ IOP_INC_DIR = $(PS2SDKSRC)/iop/memorycard/mcman/include/
 
 IOP_BIN ?= xfromman.irx
 
-IOP_CFLAGS += -DBUILDING_XFROMMAN
-
-IOP_INCS += -I$(PS2SDKSRC)/iop/dev9/extflash/include
+MCMAN_BUILDING_XFROMMAN ?= 1
 
 include $(PS2SDKSRC)/iop/memorycard/mcman/Makefile

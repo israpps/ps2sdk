@@ -10,6 +10,10 @@
 #include "ELF.h"
 #include "COFF.h"
 
+#define MODNAME "UpDate DownLoader"
+
+IRX_ID(MODNAME, 1, 1);
+
 #ifdef UDNL_T300
 int CpuExecuteKmode(void *function, ...); // Exactly the same function as INTRMAN's export 14.
 #endif
@@ -563,7 +567,7 @@ static void LoadIRXModule(const void *module, struct ModuleInfo *ModuleInfo)
     ModuleInfo->gp = (void *)((u8 *)ModuleInfo->gp + (unsigned int)ModuleInfo->text_start);
     ModuleInfo->EntryPoint = (void *)((u8 *)ModuleInfo->EntryPoint + (unsigned int)ModuleInfo->text_start);
 
-    if (ModuleInfo->mod_id + 1 != 0) {
+    if (ModuleInfo->mod_id != (void *)0xFFFFFFFF) {
         ModuleInfo->mod_id = (struct iopmod_id *)((u8 *)ModuleInfo->mod_id + (unsigned int)ModuleInfo->text_start);
     }
 
@@ -647,7 +651,7 @@ static void InitLoadedModInfo(struct ModuleInfo *ModuleInfo, struct ModInfo *Mod
     ModInfo->newflags = 0;
     ModInfo->id = 0;
 
-    if (ModuleInfo->mod_id + 1 != 0) {
+    if (ModuleInfo->mod_id != (void *)0xFFFFFFFF) {
         ModInfo->name = ModuleInfo->mod_id->name;
         ModInfo->version = ModuleInfo->mod_id->version;
     }

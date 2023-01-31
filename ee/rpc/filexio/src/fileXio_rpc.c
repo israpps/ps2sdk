@@ -18,7 +18,7 @@
 #include <sifrpc.h>
 #include <stdio.h>
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <stdarg.h>
 #include <sys/fcntl.h>
 #include <sys/stat.h>
@@ -227,6 +227,8 @@ static int fileXioInitHelper(int overrideNewlibMethods)
 		_ps2sdk_rename= fileXioRename;
 		_ps2sdk_mkdir = fileXioMkdir;
 		_ps2sdk_rmdir = fileXioRmdir;
+		_ps2sdk_readlink = fileXioReadlink;
+		_ps2sdk_symlink = fileXioSymlink;
 
 		_ps2sdk_stat = fileXioGetstatHelper;
 
@@ -538,7 +540,7 @@ int fileXioSymlink(const char* source, const char* dest)
 	return(rv);
 }
 
-int fileXioReadlink(const char* source, char* buf, int buflen)
+int fileXioReadlink(const char* source, char* buf, unsigned int buflen)
 {
 	int rv;
 	struct fxio_readlink_packet *packet=(struct fxio_readlink_packet*)sbuff;

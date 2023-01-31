@@ -27,7 +27,7 @@
 
 /* rpc server variables */
 /** buffer for RPC DMA */
-static int rpc_buffer[18000/4];
+static int rpc_buffer[18000/4] __attribute__((__aligned__(4)));
 /** RPC thread variables */
 static SifRpcDataQueue_t qd;
 /** RPC thread variables */
@@ -145,7 +145,7 @@ static void *rpc_command(int func, unsigned *data, int size)
 		break;
 
 		case AUDSRV_SET_ADPCM_VOL:
-		ret = audsrv_adpcm_set_volume(data[0], data[1]);
+		ret = audsrv_adpcm_set_volume(data[0], data[1], data[2]);
 		break;
 
 		case AUDSRV_AVAILABLE:

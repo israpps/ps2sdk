@@ -6,7 +6,13 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-SUBDIRS = bin2s bin2c bin2o adpenc ps2adpcm \
+SUBDIRS = \
+	adpenc \
+	bin2c \
+	bin2o \
+	bin2s \
+	ps2-irxgen \
+	ps2adpcm \
 #	  gensymtab
 
 include $(PS2SDKSRC)/Defs.make

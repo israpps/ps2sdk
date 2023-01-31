@@ -21,7 +21,7 @@
 #include <cdvdman.h>
 #else
 #include <string.h>
-#include <malloc.h>
+#include <stdlib.h>
 #include <time.h>
 #endif
 #include <ctype.h>
@@ -100,7 +100,11 @@ int pfsGetTime(pfs_datetime_t *tm)
 	time(&rawtime);
 	// Convert to JST
 	rawtime += (-9 * 60 * 60);
+#ifdef _WIN32
+	gmtime_s(&timeinfo, &rawtime);
+#else
 	gmtime_r(&rawtime, &timeinfo);
+#endif
 
 	tm->sec = timeinfo.tm_sec;
 	tm->min = timeinfo.tm_min;
@@ -257,25 +261,25 @@ static int pfsHddTransfer(int fd, void *buffer, u32 sub/*0=main 1+=subs*/, u32 s
 	t.mode=mode;
 	t.buffer=buffer;
 
-	return ioctl2(fd, HIOCTRANSFER, &t, 0, NULL, 0);
+	return iomanX_ioctl2(fd, HIOCTRANSFER, &t, 0, NULL, 0);
 }
 
 static u32 pfsHddGetSubCount(int fd)
 {
-	return ioctl2(fd, HIOCNSUB, NULL, 0, NULL, 0);
+	return iomanX_ioctl2(fd, HIOCNSUB, NULL, 0, NULL, 0);
 }
 
 static u32 pfsHddGetPartSize(int fd, u32 sub/*0=main 1+=subs*/)
 {	// of a partition
-	return ioctl2(fd, HIOCGETSIZE, &sub, 0, NULL, 0);
+	return iomanX_ioctl2(fd, HIOCGETSIZE, &sub, 0, NULL, 0);
 }
 
 static void pfsHddSetPartError(int fd)
 {
-	ioctl2(fd, HIOCSETPARTERROR, NULL, 0, NULL, 0);
+	iomanX_ioctl2(fd, HIOCSETPARTERROR, NULL, 0, NULL, 0);
 }
 
 static int pfsHddFlushCache(int fd)
 {
-	return ioctl2(fd,HIOCFLUSH, NULL, 0, NULL, 0);
+	return iomanX_ioctl2(fd,HIOCFLUSH, NULL, 0, NULL, 0);
 }

@@ -1,6 +1,7 @@
 name: github pages
 
 on:
+  workflow_dispatch:
   push:
     branches:
       - master
@@ -10,7 +11,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v3
+
+    - name: clone custom doxygen CSS
+      run: |
+         git clone https://github.com/jothepro/doxygen-awesome-css
 
     - name: Doxygen documentation generation
       uses: mattnotmitt/doxygen-action@v1

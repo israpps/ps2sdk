@@ -20,6 +20,8 @@
 #define MODAUTHOR                 "Raizor"                            // module author
 #define M_PRINTF(format, args...) printf(MODNAME ": " format, ##args) // module printf
 
+IRX_ID(MODNAME, 1, 1);
+
 // LIBSD defines
 #define SD_CORE_1    1
 #define SD_INIT_COLD 0
@@ -56,7 +58,7 @@ SifRpcDataQueue_t qd;
 SifRpcServerData_t Sd0;
 
 extern void wmemcpy(void *dest, void *src, int numwords);
-static unsigned int buffer[0x80];
+static unsigned int buffer[0x80] __attribute__((__aligned__(4)));
 
 // function prototypes
 void AHX_Thread(void *param);

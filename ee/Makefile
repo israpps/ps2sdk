@@ -6,12 +6,12 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-SUBDIRS = erl kernel libcglue rpc startup debug \
+SUBDIRS = erl kernel libcglue libpthreadglue rpc startup debug \
 	eedebug sbv dma graph math3d \
 	packet packet2 draw libgs \
 	libvux font input inputx network iopreboot \
 	mpeg \
-	elf-loader
+	elf-loader elf-loader-nocolour
 
 include $(PS2SDKSRC)/Defs.make
 include $(PS2SDKSRC)/Rules.make

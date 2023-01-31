@@ -27,6 +27,7 @@
 #include <string.h>
 #include <time.h>
 #include <osd_config.h>
+#include <sys/_tz_structs.h>
 
 #include "internal.h"
 
@@ -151,10 +152,12 @@ time_t ps2time(time_t *t)
     sceCdCLOCK ps2tim;
     struct tm tim;
     time_t tim2;
+    __tzinfo_type *tz;
+    int offset_save;
+
+    tz = __gettzinfo();
 
     sceCdReadClock(&ps2tim);
-    configConvertToGmtTime(&ps2tim);
-    // configConvertToLocalTime(&ps2tim);
     convertfrombcd(&ps2tim);
 #ifdef DEBUG
     printf("ps2time: %d-%d-%d %d:%d:%d\n",
@@ -172,7 +175,15 @@ time_t ps2time(time_t *t)
     tim.tm_mon  = ps2tim.month - 1;
     tim.tm_year = ps2tim.year + 100;
 
+    // Temporally set the offset relative to JST
+    if (tz != NULL)
+    {
+        offset_save = tz->__tzrule[0].offset;
+        tz->__tzrule[0].offset = -9 * 60 * 60;
+    }
     tim2 = mktime(&tim);
+    if (tz != NULL)
+        tz->__tzrule[0].offset = offset_save;
 
     if (t != NULL)
         *t = tim2;
@@ -182,7 +193,7 @@ time_t ps2time(time_t *t)
 #endif
 
 #ifdef F_sceCdWriteClock
-int sceCdWriteClock(const sceCdCLOCK *clock)
+int sceCdWriteClock(sceCdCLOCK *clock)
 {
     int result;
 
@@ -196,7 +207,7 @@ int sceCdWriteClock(const sceCdCLOCK *clock)
         return 0;
     }
 
-    memcpy((sceCdCLOCK *)clock, UNCACHED_SEG(sCmdRecvBuff + 4), 8);
+    memcpy(clock, UNCACHED_SEG(sCmdRecvBuff + 4), 8);
     result = *(int *)UNCACHED_SEG(sCmdRecvBuff);
 
     SignalSema(sCmdSemaId);
@@ -269,7 +280,7 @@ int sceCdTrayReq(int param, u32 *traychk)
 #endif
 
 #ifdef F_sceCdApplySCmd
-int sceCdApplySCmd(u8 cmdNum, const void *inBuff, u16 inBuffSize, void *outBuff, u16 outBuffSize)
+int sceCdApplySCmd(u8 cmdNum, const void *inBuff, u16 inBuffSize, void *outBuff)
 {
     if (_CdCheckSCmd(CD_SCMD_SCMD) == 0)
         return 0;
@@ -286,7 +297,7 @@ int sceCdApplySCmd(u8 cmdNum, const void *inBuff, u16 inBuffSize, void *outBuff,
     }
 
     if (outBuff)
-        memcpy(outBuff, UNCACHED_SEG(sCmdRecvBuff), outBuffSize);
+        memcpy(outBuff, UNCACHED_SEG(sCmdRecvBuff), 16);
     SignalSema(sCmdSemaId);
     return 1;
 }
@@ -947,15 +958,15 @@ int sceCdWM(const char *buffer, u32 *result)
 int sceCdNoticeGameStart(u8 arg1, u32 *result)
 {
     int res;
-    u8 out[8];
-    u8 in[8];
+    u8 out[16];
+    u8 in[16];
 
     if (result) {
         *result = 0;
     }
     {
         in[0] = arg1;
-        res   = sceCdApplySCmd(0x29u, in, 1, out, 1);
+        res   = sceCdApplySCmd(0x29u, in, 1, out);
         if (result) {
             *result = (u8)out[0];
         }

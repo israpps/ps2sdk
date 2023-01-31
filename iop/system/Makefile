@@ -8,10 +8,14 @@
 
 SUBDIRS = \
 	alloc \
+	eesync \
+	eesync-nano \
 	iomanx \
 	iopmgr \
+	loadfile \
 	mtapman \
 	padman \
+	padman-old \
 	rmman \
 	rmtapman \
 	rpadman \
@@ -20,6 +24,8 @@ SUBDIRS = \
 	siftoo \
 	sio2log \
 	sio2man \
+	sio2man-old \
+	stdio \
 	sysclib \
 	sysclib-full \
 	sysclib-nano \

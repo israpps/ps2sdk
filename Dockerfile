@@ -5,8 +5,14 @@ FROM $BASE_DOCKER_IMAGE
 COPY . /src
 
 RUN apk add build-base git bash
-RUN cd /src && make all install clean
+
+# Still compilation is not fully compatible with multi-thread
+RUN cd /src && \
+    make -j $(getconf _NPROCESSORS_ONLN) clean && \
+    make -j 1 && \
+    make -j $(getconf _NPROCESSORS_ONLN) install
 RUN ln -sf "$PS2SDK/ee/lib/libcglue.a" "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libcglue.a"
+RUN ln -sf "$PS2SDK/ee/lib/libpthreadglue.a" "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libpthreadglue.a"
 RUN ln -sf "$PS2SDK/ee/lib/libkernel.a"  "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libkernel.a"
 RUN ln -sf "$PS2SDK/ee/lib/libcdvd.a"  "$PS2DEV/ee/mips64r5900el-ps2-elf/lib/libcdvd.a"
 

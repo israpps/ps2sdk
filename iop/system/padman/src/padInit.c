@@ -16,7 +16,9 @@
 #include "thbase.h"
 #include "intrman.h"
 #include "vblank.h"
+#ifdef BUILDING_XPADMAN
 #include "xsio2man.h"
+#endif
 #include "sifman.h"
 #include "sio2Cmds.h"
 #include "sysmem.h"
@@ -91,8 +93,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[8] != 0)
+				{
 					data[8] = 0;
+				}
 			}
 
 			if(value & 0x8000)
@@ -102,8 +105,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[9] != 0)
+				{
 					data[9] = 0;
+				}
 			}
 
 			if(value & 0x1000)
@@ -113,8 +117,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[10] != 0)
+				{
 					data[10] = 0;
+				}
 			}
 
 			if(value & 0x4000)
@@ -124,8 +129,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[11] != 0)
+				{
 					data[11] = 0;
+				}
 			}
 
 			if(value & 0x0010)
@@ -135,8 +141,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[12] != 0)
+				{
 					data[12] = 0;
+				}
 			}
 
 			if(value & 0x0020)
@@ -146,8 +153,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[13] != 0)
+				{
 					data[13] = 0;
+				}
 			}
 
 			if(value & 0x0040)
@@ -157,8 +165,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[14] != 0)
+				{
 					data[14] = 0;
+				}
 			}
 
 			if(value & 0x0080)
@@ -168,8 +177,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[15] != 0)
+				{
 					data[15] = 0;
+				}
 			}
 
 			if(value & 0x0004)
@@ -179,8 +189,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[16] != 0)
+				{
 					data[16] = 0;
+				}
 			}
 
 			if(value & 0x0008)
@@ -190,8 +201,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[17] != 0)
+				{
 					data[17] = 0;
+				}
 			}
 
 			if(value & 0x0001)
@@ -201,8 +213,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[18] != 0)
+				{
 					data[18] = 0;
+				}
 			}
 
 			if(value & 0x0002)
@@ -212,8 +225,9 @@ u32 padSetupEEButtonData(u32 port, u32 slot, padState_t *pstate)
 			}
 			else
 			{
-				if(data[19] != 0)
+				{
 					data[19] = 0;
+				}
 			}
 		}
 
@@ -429,7 +443,9 @@ static void MainThread(void *arg)
 
 		mainThreadCount++;
 
+#ifdef BUILDING_XPADMAN
 		if( mainThreadCount % 30 == 0 ) sio2_mtap_update_slots();
+#endif
 
 		for(port=0; port < 2; port++)
 		{

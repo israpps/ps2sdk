@@ -412,10 +412,15 @@ int apaReadHeader(s32 device, apa_header_t *header, u32 lba)
         return -EIO;
     if (header->magic != APA_MAGIC)
         return -EIO;
+#ifdef APA_SUPPORT_GPT
     if ((u32)(apaCheckSum(header, 1)) != header->checksum)
         if (lba == APA_SECTOR_MBR)
             if ((u32)(apaCheckSum(header, 0)) != header->checksum)
                 return -EIO;
+#else
+    if ((u32)(apaCheckSum(header, 1)) != header->checksum)
+        return -EIO;
+#endif
 
     if (lba == APA_SECTOR_MBR) {
         if (strncmp(header->mbr.magic, apaMBRMagic, sizeof(header->mbr.magic)) == 0)
@@ -462,6 +467,11 @@ int apaGetFormat(s32 device, int *format)
 u32 apaGetPartitionMax(u32 totalLBA)
 {
     u32 i, size;
+
+#ifdef APA_WORKAROUND_LESS_THAN_40GB_CAPACITY
+    if (totalLBA < 0x04ffffff)
+        totalLBA = 0x04ffffff; // workaround for disks less then 40Gb
+#endif
 
     totalLBA >>= 6; // totalLBA/64
     size = (((u32)1) << 0x1F);

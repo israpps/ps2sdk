@@ -29,6 +29,10 @@
 
 #include "ps2mouse.h"
 
+#define MODNAME "PS2 USB mouse driver"
+
+IRX_ID(MODNAME, 1, 1);
+
 #define PS2MOUSE_VERSION 0x100
 
 #define USB_SUBCLASS_BOOT 1
@@ -42,9 +46,9 @@
 #define PS2MOUSE_DEFACCEL (1 << 16)
 #define PS2MOUSE_DEFTHRES 65536;
 
-static SifRpcDataQueue_t ps2mouse_queue __attribute__((aligned(64)));
-static SifRpcServerData_t ps2mouse_server __attribute((aligned(64)));
-static int _rpc_buffer[512] __attribute((aligned(64)));
+static SifRpcDataQueue_t ps2mouse_queue __attribute__((aligned(16)));
+static SifRpcServerData_t ps2mouse_server __attribute__((aligned(16)));
+static int _rpc_buffer[512]  __attribute__((__aligned__(4)));
 
 #define ABS(x) (x < 0 ? -x : x)
 

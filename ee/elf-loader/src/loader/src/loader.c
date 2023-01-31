@@ -16,9 +16,15 @@
 #include <iopcontrol.h>
 #include <sifrpc.h>
 #include <errno.h>
+#include <ps2sdkapi.h>
 
-#define GS_BGCOLOUR *((volatile unsigned long int *)0x120000E0)
+#ifdef LOADER_ENABLE_DEBUG_COLORS
+#define SET_GS_BGCOLOUR(colour) {*((volatile unsigned long int *)0x120000E0) = colour;}
+#else
+#define SET_GS_BGCOLOUR(colour)
+#endif
 
+// Color status helper in BGR format
 #define WHITE_BG 0xFFFFFF // start main
 #define CYAN_BG 0xFFFF00 // proper argc count
 #define RED_BG  0x0000FF // wrong argc count
@@ -26,7 +32,8 @@
 #define BLUE_BG 0xFF0000 // after SifLoadELF
 #define YELLOW_BG 0x00FFFF // good SifLoadELF return
 #define MAGENTA_BG 0xFF00FF // wrong SifLoadELF return
-#define BROWN_BG 0x2A2AA5  // after reset IOP
+#define ORANGE_BG 0x00A5FF  // after reset IOP
+#define BROWN_BG 0x2A2AA5  // before FlushCache
 #define PURPBLE_BG 0x800080  // before ExecPS2
 
 
@@ -36,11 +43,12 @@
 // DON'T REMOVE is for reducing binary size. 
 // These funtios are defined as weak in /libc/src/init.c
 //--------------------------------------------------------------
-   void _ps2sdk_libc_init() {}
-   void _ps2sdk_libc_deinit() {}
+   void _libcglue_init() {}
+   void _libcglue_deinit() {}
 
    DISABLE_PATCHED_FUNCTIONS();
    DISABLE_EXTRA_TIMERS_FUNCTIONS();
+   PS2_DISABLE_AUTOSTART_PTHREAD();
 
 //--------------------------------------------------------------
 //Start of function code:
@@ -74,11 +82,11 @@ int main(int argc, char *argv[])
 
 	elfdata.epc = 0;
 
-	GS_BGCOLOUR = WHITE_BG;
+	SET_GS_BGCOLOUR(WHITE_BG);
 	// arg[0] partition if exists, otherwise is ""
 	// arg[1]=path to ELF
 	if (argc < 2) {  
-		GS_BGCOLOUR = RED_BG;
+		SET_GS_BGCOLOUR(RED_BG);
 		return -EINVAL;
 	}
 
@@ -93,7 +101,7 @@ int main(int argc, char *argv[])
 		new_argv[i - 1] = argv[i];
 	}
 
-	GS_BGCOLOUR = CYAN_BG;
+	SET_GS_BGCOLOUR(CYAN_BG);
 
 	// Initialize
 	SifInitRpc(0);
@@ -101,19 +109,19 @@ int main(int argc, char *argv[])
 
 	//Writeback data cache before loading ELF.
 	FlushCache(0);
-	GS_BGCOLOUR = GREEN_BG;
+	SET_GS_BGCOLOUR(GREEN_BG);
 	SifLoadFileInit();
 	ret = SifLoadElf(argv[1], &elfdata);
 	SifLoadFileExit();
-	GS_BGCOLOUR = BLUE_BG;
+	SET_GS_BGCOLOUR(BLUE_BG);
 	if (ret == 0 && elfdata.epc != 0) {
-		GS_BGCOLOUR = YELLOW_BG;
+		SET_GS_BGCOLOUR(YELLOW_BG);
 
 		// Let's reset IOP because ELF was already loaded in memory
 		while(!SifIopReset(NULL, 0)){};
 		while (!SifIopSync()) {};
 
-		GS_BGCOLOUR = RED_BG;
+		SET_GS_BGCOLOUR(ORANGE_BG);
 
         SifInitRpc(0);
         // Load modules.
@@ -124,16 +132,16 @@ int main(int argc, char *argv[])
         SifLoadFileExit();
         SifExitRpc();
 
-		GS_BGCOLOUR = BROWN_BG;
+		SET_GS_BGCOLOUR(BROWN_BG);
 
 		FlushCache(0);
 		FlushCache(2);
 
-		GS_BGCOLOUR = PURPBLE_BG;
+		SET_GS_BGCOLOUR(PURPBLE_BG);
 		
 		return ExecPS2((void *)elfdata.epc, (void *)elfdata.gp, argc-1, new_argv);
 	} else {
-		GS_BGCOLOUR = MAGENTA_BG;
+		SET_GS_BGCOLOUR(MAGENTA_BG);
 		SifExitRpc();
 		return -ENOENT;
 	}

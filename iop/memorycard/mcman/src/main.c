@@ -19,9 +19,6 @@
 // 0x02,0x0a (looks like mistake, cause last XMCMAN is 0x02,0x09)
 IRX_ID(MODNAME, 2, 11);
 
-char sio2man_modname[8] = "sio2man\0";
-int sio2man_type = SIO2MAN;
-
 char SUPERBLOCK_MAGIC[] = "Sony PS2 Memory Card Format ";
 char SUPERBLOCK_VERSION[] = "1.2.0.0";
 
@@ -67,11 +64,6 @@ MC_FHANDLE mcman_fdhandles[MAX_FDHANDLES];
 MCDevInfo mcman_devinfos[4][MCMAN_MAXSLOT];
 
 u8 mcman_eccdata[512]; // size for 32 ecc
-
-#ifndef BUILDING_XFROMMAN
-int (*mcman_sio2transfer)(int port, int slot, sio2_transfer_data_t *sio2data);
-int (*mc_detectcard)(int port, int slot);
-#endif
 
 // mcman xor table
 // clang-format off
@@ -133,9 +125,9 @@ void long_multiply(u32 v1, u32 v2, u32 *HI, u32 *LO)
 }
 
 //--------------------------------------------------------------
-int mcman_chrpos(char *str, int chr)
+int mcman_chrpos(const char *str, int chr)
 {
-	char *p;
+	const char *p;
 
 	p = str;
 	if (*str) {
@@ -153,12 +145,6 @@ int mcman_chrpos(char *str, int chr)
 //--------------------------------------------------------------
 int _start(int argc, char *argv[])
 {
-#ifndef BUILDING_XFROMMAN
-	iop_library_t *libptr;
-	register int i, sio2man_loaded;
-	void **export_tab;
-#endif
-
 	(void)argc;
 	(void)argv;
 
@@ -166,79 +152,6 @@ int _start(int argc, char *argv[])
 	sio_init(38400, 0, 0, 0, 0);
 #endif
 	DPRINTF("_start...\n");
-
-#ifndef BUILDING_XFROMMAN
-	// Get sio2man lib ptr
-	sio2man_loaded = 0;
-	libptr = GetLoadcoreInternalData()->let_next;
-	while (libptr != 0) {
-		for (i=0; i<8; i++) {
-			if (libptr->name[i] != sio2man_modname[i])
-				break;
-		}
-		if (i == 8) {
-			sio2man_loaded = 1;
-			break;
-		}
-		libptr = libptr->prev;
-	}
-
-	if (!sio2man_loaded) {
-		DPRINTF("sio2man module is not loaded...\n");
-		return MODULE_NO_RESIDENT_END;
-	}
-
-	DPRINTF("sio2man version=0x%03x\n", libptr->version);
-	if (libptr->version >= 0x201)
-		sio2man_type = XSIO2MAN_V2;
-	else if (libptr->version > 0x101)
-		sio2man_type = XSIO2MAN;
-
-	// Get sio2man export table
-	export_tab = (void **)(((struct irx_export_table *)libptr)->fptrs);
-
-	// Set functions pointers to match SIO2MAN exports
-	psio2_mc_transfer_init = export_tab[24];
-	psio2_transfer = export_tab[25];
-	// set internals function pointers for MCMAN
-	mcman_sio2transfer = (void *)mcsio2_transfer;
-	mc_detectcard = (void *)McDetectCard2;
-
-	if (sio2man_type >= XSIO2MAN) {
-		// Set functions pointers to match XSIO2MAN exports
-		psio2_transfer_reset = export_tab[26];
-		if(sio2man_type == XSIO2MAN)
-			psio2_mtap_change_slot = export_tab[55];
-		else
-			psio2_mtap_change_slot = export_tab[57];
-
-		// set internals function pointers for XMCMAN
-		mcman_sio2transfer = (void *)mcsio2_transfer2;
-		mc_detectcard = (void *)mcman_detectcard;
-
-		// Modify mcman export ver
-		_exp_mcman.version = 0x203;
-		// Get mcman export table
-		export_tab = (void **)(struct irx_export_table *)&_exp_mcman.fptrs;
-		export_tab[17] = (void *)McEraseBlock2;
-		export_tab[21] = (void *)McDetectCard2;
-		export_tab[22] = (void *)McGetFormat;
-		export_tab[23] = (void *)McGetEntSpace;
-		export_tab[24] = (void *)McReplaceBadBlock;
-		export_tab[25] = (void *)McCloseAll;
-		export_tab[42] = (void *)McGetModuleInfo;
-		export_tab[43] = (void *)McGetCardSpec;
-		export_tab[44] = (void *)McGetFATentry;
-		export_tab[45] = (void *)McCheckBlock;
-		export_tab[46] = (void *)McSetFATentry;
-		export_tab[47] = (void *)McReadDirEntry;
-		export_tab[48] = (void *)Mc1stCacheEntSetWrFlagOff;
-		export_tab[49] = (void *)McCreateDirentry;
-		export_tab[50] = (void *)McReadCluster;
-		export_tab[51] = (void *)McFlushCache;
-		export_tab[52] = (void *)McSetDirEntryState;
-	}
-#endif
 
 	DPRINTF("registering exports...\n");
 #ifndef BUILDING_XFROMMAN
@@ -316,7 +229,7 @@ int McGetFreeClusters(int port, int slot) // Export #38
 	DPRINTF("McGetFreeClusters port%d slot%d\n", port, slot);
 
 	mcfree = 0;
-	if (mcdi->cardform)	{
+	if (mcdi->cardform > 0)	{
 		switch (mcdi->cardtype) {
    			case sceMcTypePS2:
    				mcfree = mcman_findfree2(port, slot, 0);
@@ -485,11 +398,10 @@ int McCloseAll(void) // Export #25 XMCMAN only
 //--------------------------------------------------------------
 int McDetectCard(int port, int slot) // Export #5
 {
-#ifndef BUILDING_XFROMMAN
-	return mc_detectcard(port, slot);
-#endif
-#ifdef BUILDING_XFROMMAN
+#ifdef BUILDING_XMCMAN
 	return mcman_detectcard(port, slot);
+#else
+	return McDetectCard2(port, slot);
 #endif
 }
 
@@ -1356,9 +1268,13 @@ int mcman_setdevinfos(int port, int slot)
 
 	mcman_wmemset((void *)mcdi, sizeof(MCDevInfo), 0);
 
+	mcdi->cardform = 0;
+
 	r = mcman_setdevspec(port, slot);
 	if (r != sceMcResSucceed)
 		return -49;
+
+	mcdi->cardform = -1;
 
 	r = McReadPage(port, slot, 0, &mcman_pagebuf);
 	if (r == sceMcResNoFormat)
@@ -2541,6 +2457,8 @@ int mcman_setPS1devinfos(int port, int slot)
 	if (mcman_sio2outbufs_PS1PDA[1] != 0)
 		return -15;
 #endif
+
+	mcdi->cardform = -1;
 
 	if (mcman_PS1PDApagebuf.byte[0] != 0x4d)
 		return sceMcResNoFormat;
@@ -3847,10 +3765,10 @@ int mcman_readdirentryPS1(int port, int slot, int cluster, McFsEntryPS1 **pfse)
 
 	*pfse = (void *)&mce->cl_data[offset << 7];
 
-	if (sio2man_type >= XSIO2MAN) {
-		McFsEntryPS1 *fse = (McFsEntryPS1 *)*pfse; // <--- XMCMAN seems to work with this
-		fse->field_7d = 0;						   //
-	}
+#ifdef BUILDING_XMCMAN
+	McFsEntryPS1 *fse = (McFsEntryPS1 *)*pfse; // <--- XMCMAN seems to work with this
+	fse->field_7d = 0;						   //
+#endif
 
 	return sceMcResSucceed;
 }

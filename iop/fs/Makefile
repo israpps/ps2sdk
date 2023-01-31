@@ -6,7 +6,20 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-SUBDIRS = libbdm bdm bdmfs_vfat bdmfs_fatfs devfs fakehost filexio http netfs
+SUBDIRS = \
+	adddrv \
+	addrom2 \
+	bdm \
+	bdmfs_fatfs \
+	bdmfs_vfat \
+	devfs \
+	fakehost \
+	fileio \
+	filexio \
+	http \
+	libbdm \
+	netfs \
+	romdrv
 
 include $(PS2SDKSRC)/Defs.make
 include $(PS2SDKSRC)/Rules.make

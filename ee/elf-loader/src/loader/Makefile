@@ -6,35 +6,22 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-EE_BIN = loader.elf
-
 EE_OBJS = loader.o
-MAPFILE = loader.map
 
-# Include directories
-EE_INCS := $(EE_INCS) -I$(PS2SDKSRC)/ee/kernel/include -I$(PS2SDKSRC)/common/include -I$(PS2SDKSRC)/ee/libcglue/include
-EE_LIBS := $(EE_LIBS) -L$(PS2SDKSRC)/ee/kernel/lib -L$(PS2SDKSRC)/ee/libcglue/lib -L$(PS2SDKSRC)/ee/rpc/cdvd/lib
+# Enable debug colors?
+LOADER_ENABLE_DEBUG_COLORS ?= 1
 
-EE_CFLAGS = -D_EE -Os -G0 -Wall -Werror
-EE_CFLAGS += -fdata-sections -ffunction-sections
-EE_LDFLAGS += -Tlinkfile -Wl,-zmax-page-size=128 -Wl,-Map,$(MAPFILE)
-EE_LDFLAGS += -s -Wl,--gc-sections
+# Use nano newlib for saving space
+EE_NEWLIB_NANO ?= 1
+EE_COMPACT_EXECUTABLE ?= 1
 
-#Uso nano newlib for saving space
-EE_LDFLAGS += -nodefaultlibs -lm_nano -lgcc -Wl,--start-group -lc_nano -lcdvd -lcglue -lkernel -Wl,--end-group
+EE_LINKFILE ?= linkfile
 
-%.o: %.c
-	$(EE_CC) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
-
-$(EE_BIN) : $(EE_OBJS)
-	$(EE_CC) $(EE_CFLAGS) -o $(EE_BIN) $(EE_OBJS) $(EE_LIBS) $(EE_LDFLAGS)
-
-all: $(EE_BIN)
-
-clean:
-	rm -f -r $(EE_OBJS) $(EE_BIN) $(MAPFILE)
-
-clean_all:
-	rm -f -r $(EE_OBJS) $(EE_BIN) $(MAPFILE)
+ifneq (x$(LOADER_ENABLE_DEBUG_COLORS), x0)
+EE_CFLAGS += -DLOADER_ENABLE_DEBUG_COLORS
+endif
 
 include $(PS2SDKSRC)/Defs.make
+include $(PS2SDKSRC)/ee/Rules.bin.make
+include $(PS2SDKSRC)/ee/Rules.make
+include $(PS2SDKSRC)/ee/Rules.release

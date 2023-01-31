@@ -42,11 +42,12 @@ extern void *_heap_size;
 
 #if !defined(SCREEN_DEBUG)
 // sleep requires it
-void _ps2sdk_libc_init();
-void _ps2sdk_libc_deinit();
+void _libcglue_init() {}
+void _libcglue_deinit() {}
 #endif
 
 void _libcglue_timezone_update() {}
+void _libcglue_rtc_update() {}
 
 // "weak" function called by crt0.o
 void _ps2sdk_memory_init()

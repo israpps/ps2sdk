@@ -40,8 +40,6 @@ static const u8 mcman_cmdtable[36] = {
 	0xbf, 0x05, 0xf3, 0x05
 };
 
-extern int (*mcman_sio2transfer)(int port, int slot, sio2_transfer_data_t *sio2data);
-
 // sio2packet_add child functions
 static void (*sio2packet_add_func)(int port, int slot, int cmd, u8 *buf, int pos);
 static void sio2packet_add_wdma_u32(int port, int slot, int cmd, u8 *buf, int pos);
@@ -266,6 +264,29 @@ static void sio2packet_add_do_nothing(int port, int slot, int cmd, u8 *buf, int 
 //--------------------------------------------------------------
 int mcsio2_transfer(int port, int slot, sio2_transfer_data_t *sio2data)
 {
+#ifdef BUILDING_XMCMAN
+	// SIO2 transfer for XMCMAN
+	register int r;
+	s32 port_ctrl[8];
+
+	DPRINTF("mcsio2_transfer port%d slot%d\n", port, slot);
+
+	port_ctrl[0] = -1;
+	port_ctrl[1] = -1;
+	port_ctrl[2] = -1;
+	port_ctrl[3] = -1;
+
+	port_ctrl[(port & 1) + 2] = slot;
+
+	sio2_mc_transfer_init();
+	sio2_mtap_change_slot(port_ctrl);
+	r = sio2_transfer(sio2data);
+	sio2_transfer_reset();
+
+	DPRINTF("mcsio2_transfer returns %d\n", r);
+
+	return r;
+#else
 	register int r;
 
 	(void)port;
@@ -282,38 +303,13 @@ int mcsio2_transfer(int port, int slot, sio2_transfer_data_t *sio2data)
 #endif
 
 	// SIO2 transfer for MCMAN
-	psio2_mc_transfer_init();
-	r = psio2_transfer(sio2data);
+	sio2_mc_transfer_init();
+	r = sio2_transfer(sio2data);
 
 	DPRINTF("returns %d\n", r);
 
 	return r;
-}
-
-//--------------------------------------------------------------
-int mcsio2_transfer2(int port, int slot, sio2_transfer_data_t *sio2data)
-{
-	// SIO2 transfer for XMCMAN
-	register int r;
-	s32 port_ctrl[8];
-
-	DPRINTF("mcsio2_transfer2 port%d slot%d\n", port, slot);
-
-	port_ctrl[0] = -1;
-	port_ctrl[1] = -1;
-	port_ctrl[2] = -1;
-	port_ctrl[3] = -1;
-
-	port_ctrl[(port & 1) + 2] = slot;
-
-	psio2_mc_transfer_init();
-	psio2_mtap_change_slot(port_ctrl);
-	r = psio2_transfer(sio2data);
-	psio2_transfer_reset();
-
-	DPRINTF("mcsio2_transfer2 returns %d\n", r);
-
-	return r;
+#endif
 }
 #endif
 
@@ -376,7 +372,7 @@ int secrman_mc_command(int port, int slot, sio2_transfer_data_t *sio2data)
 	DPRINTF("secrman_mc_command port%d slot%d\n", port, slot);
 
 #ifndef BUILDING_XFROMMAN
-	r = mcman_sio2transfer(port, slot, sio2data);
+	r = mcsio2_transfer(port, slot, sio2data);
 #endif
 #ifdef BUILDING_XFROMMAN
 	(void)port;
@@ -403,7 +399,7 @@ int mcman_cardchanged(int port, int slot)
 
 	retries = 0;
 	do {
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) == 0x1000) && (p[3] != 0x66))
 			break;
@@ -447,7 +443,7 @@ int mcman_eraseblock(int port, int slot, int block, void **pagebuf, void *eccbuf
 	retries = 0;
 	do {
 #ifndef BUILDING_XFROMMAN
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) != 0x1000) || (p[8] != 0x5a))
 			continue;
@@ -493,7 +489,7 @@ int mcman_eraseblock(int port, int slot, int block, void **pagebuf, void *eccbuf
 
 	retries = 0;
 	do {
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) != 0x1000))
 			continue;
@@ -553,7 +549,7 @@ int McWritePage(int port, int slot, int page, void *pagebuf, void *eccbuf) // Ex
 		}
  		sio2packet_add(port, slot, 0xfffffffe, NULL);
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) != 0x1000) || (p[8] != 0x5a))
 			continue;
@@ -579,7 +575,7 @@ int McWritePage(int port, int slot, int page, void *pagebuf, void *eccbuf) // Ex
 		sio2packet_add(port, slot, 0x0c, NULL);
 		sio2packet_add(port, slot, 0xfffffffe, NULL);
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) != 0x1000) || (p[3] != 0x5a))
 			continue;
@@ -639,7 +635,7 @@ int mcman_readpage(int port, int slot, int page, void *buf, void *eccbuf)
  		sio2packet_add(port, slot, 0x0c, NULL);
  		sio2packet_add(port, slot, 0xfffffffe, NULL);
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) != 0x1000)
 			|| (p[8] != 0x5a)
@@ -713,7 +709,7 @@ int McGetCardSpec(int port, int slot, s16 *pagesize, u16 *blocksize, int *cardsi
 	retries = 0;
 
 	do {
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) == 0x1000) && (p[12] == 0x5a)) {
    			// checking EDC
@@ -764,7 +760,7 @@ int mcman_resetauth(int port, int slot)
 	retries = 0;
 
 	do {
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if ((mcman_sio2packet.stat6c & 0xF000) == 0x1000)
 			break;
@@ -801,7 +797,7 @@ int mcman_probePS2Card2(int port, int slot)
 		sio2packet_add(port, slot, 0x09, NULL);
 		sio2packet_add(port, slot, 0xfffffffe, NULL);
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) == 0x1000) && (p[4] != 0x66))
 			break;
@@ -812,14 +808,14 @@ int mcman_probePS2Card2(int port, int slot)
 
 	if (p[3] == 0x5a) {
 		r = McGetFormat(port, slot);
-		if (r > 0) {
+		if (r > 0)
+		{
 			DPRINTF("mcman_probePS2Card2 succeeded\n");
 
 			return sceMcResSucceed;
 		}
-
-		r = McGetFormat(port, slot);
-		if (r < 0) {
+		else if (r < 0)
+		{
 			DPRINTF("mcman_probePS2Card2 sio2cmd failed (no format)\n");
 
 			return sceMcResNoFormat;
@@ -846,7 +842,6 @@ int mcman_probePS2Card2(int port, int slot)
 int mcman_probePS2Card(int port, int slot) //2
 {
 	register int r;
-	register MCDevInfo *mcdi;
 #ifndef BUILDING_XFROMMAN
 	register int retries;
 	u8 *p = mcman_sio2packet.out_dma.addr;
@@ -857,10 +852,17 @@ int mcman_probePS2Card(int port, int slot) //2
 	r = mcman_cardchanged(port, slot);
 	if (r == sceMcResSucceed) {
 		r = McGetFormat(port, slot);
-		if (r != 0) {
+		if (r > 0)
+		{
 			DPRINTF("mcman_probePS2Card sio2cmd succeeded\n");
 
 			return sceMcResSucceed;
+		}
+		else if (r < 0)
+		{
+			DPRINTF("mcman_probePS2Card sio2cmd failed (no format)\n");
+
+			return sceMcResNoFormat;
 		}
 	}
 
@@ -883,7 +885,7 @@ int mcman_probePS2Card(int port, int slot) //2
 		sio2packet_add(port, slot, 0x09, NULL);
 		sio2packet_add(port, slot, 0xfffffffe, NULL);
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
 		if (((mcman_sio2packet.stat6c & 0xF000) == 0x1000) && (p[4] != 0x66))
 			break;
@@ -904,7 +906,7 @@ int mcman_probePS2Card(int port, int slot) //2
 
 	retries = 0;
     do {
-		mcman_sio2transfer(port, slot, &mcman_sio2packet);
+		mcsio2_transfer(port, slot, &mcman_sio2packet);
 
     	if ((mcman_sio2packet.stat6c & 0xF000) != 0x1000)
     		continue;
@@ -929,9 +931,6 @@ int mcman_probePS2Card(int port, int slot) //2
 		DPRINTF("mcman_probePS2Card sio2cmd failed (mc detection failed)\n");
 		return sceMcResFailDetect2;
 	}
-
-	mcdi = &mcman_devinfos[port][slot];
-	mcdi->cardform = r;
 
 	DPRINTF("mcman_probePS2Card sio2cmd succeeded\n");
 
@@ -966,7 +965,7 @@ int mcman_probePS1Card2(int port, int slot)
 		if (((u32)(hi >> 3) < (u32)mcman_timerthick))
 			DelayThread(mcman_timerthick - (hi >> 3));
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet_PS1PDA);
+		mcsio2_transfer(port, slot, &mcman_sio2packet_PS1PDA);
 
 		mcman_timercount = GetTimerCounter(timer_ID);
 		mcman_timerthick = 0;
@@ -983,7 +982,7 @@ int mcman_probePS1Card2(int port, int slot)
 	if (mcman_sio2outbufs_PS1PDA[1] == 0) {
 		if (mcdi->cardform > 0)
 			return sceMcResSucceed;
-		if (mcdi->cardform < 0)
+		else if (mcdi->cardform < 0)
 			return sceMcResNoFormat;
 	}
 	else if (mcman_sio2outbufs_PS1PDA[1] != 8) {
@@ -1026,7 +1025,7 @@ int mcman_probePS1Card(int port, int slot)
 		if (((u32)(hi >> 3) < (u32)mcman_timerthick))
 			DelayThread(mcman_timerthick - (hi >> 3));
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet_PS1PDA);
+		mcsio2_transfer(port, slot, &mcman_sio2packet_PS1PDA);
 
 		mcman_timercount = GetTimerCounter(timer_ID);
 		mcman_timerthick = 0;
@@ -1043,6 +1042,8 @@ int mcman_probePS1Card(int port, int slot)
 	if (mcman_sio2outbufs_PS1PDA[1] == 0) {
 		if (mcdi->cardform != 0)
 			return sceMcResSucceed;
+		else
+			return sceMcResNoFormat;
 	}
 	else if (mcman_sio2outbufs_PS1PDA[1] != 8) {
 		return -12;
@@ -1061,8 +1062,6 @@ int mcman_probePS1Card(int port, int slot)
 	r = mcman_setPS1devinfos(port, slot);
 	if (r == 0)
 		return sceMcResChangedCard;
-
-	mcdi->cardform = r;
 
 	return r;
 #endif
@@ -1092,7 +1091,7 @@ int mcman_probePDACard(int port, int slot)
 
 	retries = 0;
 	do {
-		mcman_sio2transfer(port, slot, &mcman_sio2packet_PS1PDA);
+		mcsio2_transfer(port, slot, &mcman_sio2packet_PS1PDA);
 
 		if ((mcman_sio2packet_PS1PDA.stat6c & 0xf000) == 0x1000)
 				break;
@@ -1151,7 +1150,7 @@ int McWritePS1PDACard(int port, int slot, int page, void *buf) // Export #30
 		if (((u32)(hi >> 3) < (u32)mcman_timerthick))
 			DelayThread(mcman_timerthick - (hi >> 3));
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet_PS1PDA);
+		mcsio2_transfer(port, slot, &mcman_sio2packet_PS1PDA);
 
 		mcman_timercount = GetTimerCounter(timer_ID);
 		mcman_timerthick = 20000;
@@ -1215,7 +1214,7 @@ int McReadPS1PDACard(int port, int slot, int page, void *buf) // Export #29
 		if (((u32)(hi >> 3) < (u32)mcman_timerthick))
 			DelayThread(mcman_timerthick - (hi >> 3));
 
-		mcman_sio2transfer(port, slot, &mcman_sio2packet_PS1PDA);
+		mcsio2_transfer(port, slot, &mcman_sio2packet_PS1PDA);
 
 		mcman_timercount = GetTimerCounter(timer_ID);
 		mcman_timerthick = 10000;

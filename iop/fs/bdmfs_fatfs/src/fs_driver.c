@@ -28,34 +28,40 @@
 //#define DEBUG  //comment out this line when not debugging
 #include "module_debug.h"
 
-FATFS fatfs;
-struct block_device *mounted_bd = NULL;
+fatfs_fs_driver_mount_info fs_driver_mount_info[FF_VOLUMES];
 
-void *malloc(int size);
-void free(void *ptr);
+#define FATFS_FS_DRIVER_MOUNT_INFO_MAX ((int)(sizeof(fs_driver_mount_info) / sizeof(fs_driver_mount_info[0])))
 
-// TODO: if all drives have the same mount point, it will only allow for one mounted block device
-int connect_bd(struct block_device *bd)
-{
-    mounted_bd = bd;
-    if (f_mount(&fatfs, "", 0) == FR_OK) {
-        return 0;
-    } else {
-        mounted_bd = NULL;
-        return -1;
+// Macros for defining the modified path on stack.
+#define FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_DEFINITIONS(varname) \
+    const char *modified_##varname;
+
+#define FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_IMPLEMENTATION(varname, fd) \
+    { \
+        if ((fd)->unit != 0) \
+        { \
+            int strlen_##varname; \
+            char *modified_scope_##varname; \
+            \
+            strlen_##varname = strlen(varname); \
+            modified_scope_##varname = __builtin_alloca(3 + strlen_##varname + 1); \
+            modified_scope_##varname[0] = '0' + (fd)->unit; \
+            modified_scope_##varname[1] = ':'; \
+            modified_scope_##varname[2] = '/'; \
+            memcpy((modified_scope_##varname) + 3, varname, strlen_##varname); \
+            modified_scope_##varname[3 + strlen_##varname] = '\x00'; \
+            modified_##varname = modified_scope_##varname; \
+        } \
+        else \
+        { \
+            modified_##varname = varname; \
+        } \
     }
-}
 
-void disconnect_bd(struct block_device *bd)
-{
-    (void)bd;
 
-    f_unmount("");
-    mounted_bd = NULL;
-}
 
 //---------------------------------------------------------------------------
-static int _lock_sema_id = -1;
+static int _fs_lock_sema_id = -1;
 
 //---------------------------------------------------------------------------
 static int _fs_init_lock(void)
@@ -68,7 +74,7 @@ static int _fs_init_lock(void)
     sp.max     = 1;
     sp.option  = 0;
     sp.attr    = 0;
-    if ((_lock_sema_id = CreateSema(&sp)) < 0) {
+    if ((_fs_lock_sema_id = CreateSema(&sp)) < 0) {
         return (-1);
     }
 
@@ -80,7 +86,7 @@ static void _fs_lock(void)
 {
     M_DEBUG("%s\n", __func__);
 
-    WaitSema(_lock_sema_id);
+    WaitSema(_fs_lock_sema_id);
 }
 
 //---------------------------------------------------------------------------
@@ -88,7 +94,7 @@ static void _fs_unlock(void)
 {
     M_DEBUG("%s\n", __func__);
 
-    SignalSema(_lock_sema_id);
+    SignalSema(_fs_lock_sema_id);
 }
 
 //---------------------------------------------------------------------------
@@ -96,14 +102,156 @@ static void fs_reset(void)
 {
     M_DEBUG("%s\n", __func__);
 
-    if (_lock_sema_id >= 0)
-        DeleteSema(_lock_sema_id);
+    if (_fs_lock_sema_id >= 0)
+        DeleteSema(_fs_lock_sema_id);
 
     _fs_init_lock();
 }
 
+static void fatfs_fs_driver_initialize_all_mount_info(void)
+{
+    int i;
+    for (i = 0; i < FATFS_FS_DRIVER_MOUNT_INFO_MAX; i += 1) {
+        memset(&(fs_driver_mount_info[i].fatfs), 0, sizeof(fs_driver_mount_info[i].fatfs));
+        fs_driver_mount_info[i].mounted_bd = NULL;
+    }
+}
+
+static int fatfs_fs_driver_find_mount_info_index_from_block_device(const struct block_device *bd)
+{
+    int i;
+    for (i = 0; i < FATFS_FS_DRIVER_MOUNT_INFO_MAX; i += 1) {
+        if (fs_driver_mount_info[i].mounted_bd == bd) {
+            return i;
+        }
+    }
+    return -1;
+}
+
+static int fatfs_fs_driver_find_mount_info_index_free(void)
+{
+    return fatfs_fs_driver_find_mount_info_index_from_block_device(NULL);
+}
+
+struct block_device *fatfs_fs_driver_get_mounted_bd_from_index(int mount_info_index)
+{
+    struct block_device *mounted_bd;
+    if (mount_info_index > FATFS_FS_DRIVER_MOUNT_INFO_MAX) {
+        return NULL;
+    }
+    mounted_bd = fs_driver_mount_info[mount_info_index].mounted_bd;
+    return mounted_bd;
+}
+
+static FRESULT fatfs_fs_driver_mount_bd(int mount_info_index, struct block_device *bd)
+{
+    int ret;
+    char mount_point[3];
+    mount_point[0] = '0' + mount_info_index;
+    mount_point[1] = ':';
+    mount_point[2] = '\x00';
+
+    fs_driver_mount_info[mount_info_index].mounted_bd = bd;
+    ret = f_mount(&(fs_driver_mount_info[mount_info_index].fatfs), mount_point, 0);
+    if (ret != FR_OK) {
+        fs_driver_mount_info[mount_info_index].mounted_bd = NULL;
+    }
+    return ret;
+}
+
+static void fatfs_fs_driver_unmount_bd(int mount_info_index)
+{
+    char mount_point[3];
+    mount_point[0] = '0' + mount_info_index;
+    mount_point[1] = ':';
+    mount_point[2] = '\x00';
+
+    f_unmount(mount_point);
+    fs_driver_mount_info[mount_info_index].mounted_bd = NULL;
+}
+
+static void fatfs_fs_driver_stop_single_bd(int mount_info_index)
+{
+    struct block_device *mounted_bd;
+
+    mounted_bd = fatfs_fs_driver_get_mounted_bd_from_index(mount_info_index);
+    if (mounted_bd != NULL) {
+        fatfs_fs_driver_unmount_bd(mount_info_index);
+        mounted_bd->stop(mounted_bd);
+    }
+}
+
+static void fatfs_fs_driver_stop_all_bd(void)
+{
+    int i;
+    for (i = 0; i < FATFS_FS_DRIVER_MOUNT_INFO_MAX; i += 1) {
+        fatfs_fs_driver_stop_single_bd(i);
+    }
+}
+
+int connect_bd(struct block_device *bd)
+{
+    int mount_info_index;
+
+    _fs_lock();
+    mount_info_index = fatfs_fs_driver_find_mount_info_index_free();
+    if (mount_info_index != -1) {
+        if (fatfs_fs_driver_mount_bd(mount_info_index, bd) == FR_OK) {
+            _fs_unlock();
+            return 0;
+        }
+    }
+    _fs_unlock();
+    return -1;
+}
+
+void disconnect_bd(struct block_device *bd)
+{
+    int mount_info_index;
+
+    _fs_lock();
+    mount_info_index = fatfs_fs_driver_find_mount_info_index_from_block_device(bd);
+    if (mount_info_index != -1) {
+        fatfs_fs_driver_unmount_bd(mount_info_index);
+    }
+    _fs_unlock();
+}
+
 //---------------------------------------------------------------------------
-static int fs_inited = 0;
+
+#define MAX_FILES 16
+static FIL fil_structures[MAX_FILES];
+
+#define MAX_DIRS 16
+static DIR dir_structures[MAX_DIRS];
+
+static FIL *fs_find_free_fil_structure(void)
+{
+    int i;
+
+    M_DEBUG("%s\n", __func__);
+
+    for (i = 0; i < MAX_FILES; i++) {
+        if (fil_structures[i].obj.fs == NULL) {
+            return &fil_structures[i];
+        }
+    }
+    return NULL;
+}
+
+static DIR *fs_find_free_dir_structure(void)
+{
+    int i;
+
+    M_DEBUG("%s\n", __func__);
+
+    for (i = 0; i < MAX_DIRS; i++) {
+        if (dir_structures[i].obj.fs == NULL) {
+            return &dir_structures[i];
+        }
+    }
+    return NULL;
+}
 
 //---------------------------------------------------------------------------
 static int fs_dummy(void)
@@ -120,11 +268,6 @@ static int fs_init(iop_device_t *driver)
 
     (void)driver;
 
-    if (!fs_inited) {
-        fs_reset();
-        fs_inited = 1;
-    }
-
     return 1;
 }
 
@@ -135,13 +278,19 @@ static int fs_open(iop_file_t *fd, const char *name, int flags, int mode)
 
     int ret;
     BYTE f_mode = FA_OPEN_EXISTING;
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_DEFINITIONS(name);
 
     (void)mode;
 
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_IMPLEMENTATION(name, fd);
+
     _fs_lock();
 
+    // check if the slot is free
+    fd->privdata = fs_find_free_fil_structure();
     if (fd->privdata == NULL) {
-        fd->privdata = malloc(sizeof(FIL));
+        _fs_unlock();
+        return -EMFILE;
     }
 
     // translate mode
@@ -156,10 +305,9 @@ static int fs_open(iop_file_t *fd, const char *name, int flags, int mode)
     if (flags & O_APPEND)
         f_mode |= FA_OPEN_APPEND;
 
-    ret = f_open(fd->privdata, name, f_mode);
+    ret = f_open(fd->privdata, modified_name, f_mode);
 
     if (ret != FR_OK) {
-        free(fd->privdata);
         fd->privdata = NULL;
         ret          = -ret;
     } else {
@@ -173,8 +321,6 @@ static int fs_open(iop_file_t *fd, const char *name, int flags, int mode)
 //---------------------------------------------------------------------------
 static int fs_close(iop_file_t *fd)
 {
-
-
     M_DEBUG("%s\n", __func__);
 
     int ret = FR_OK;
@@ -183,7 +329,6 @@ static int fs_close(iop_file_t *fd)
 
     if (fd->privdata) {
         ret = f_close(fd->privdata);
-        free(fd->privdata);
         fd->privdata = NULL;
     }
 
@@ -272,12 +417,13 @@ static int fs_remove(iop_file_t *fd, const char *name)
     M_DEBUG("%s\n", __func__);
 
     int ret;
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_DEFINITIONS(name);
 
-    (void)fd;
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_IMPLEMENTATION(name, fd);
 
     _fs_lock();
 
-    ret = f_unlink(name);
+    ret = f_unlink(modified_name);
 
     _fs_unlock();
     return -ret;
@@ -289,13 +435,15 @@ static int fs_mkdir(iop_file_t *fd, const char *name, int mode)
     M_DEBUG("%s\n", __func__);
 
     int ret;
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_DEFINITIONS(name);
 
-    (void)fd;
     (void)mode;
+
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_IMPLEMENTATION(name, fd);
 
     _fs_lock();
 
-    ret = f_mkdir(name);
+    ret = f_mkdir(modified_name);
 
     _fs_unlock();
     return -ret;
@@ -307,17 +455,22 @@ static int fs_dopen(iop_file_t *fd, const char *name)
     M_DEBUG("%s: unit %d name %s\n", __func__, fd->unit, name);
 
     int ret;
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_DEFINITIONS(name);
+
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_IMPLEMENTATION(name, fd);
 
     _fs_lock();
 
+    // check if the slot is free
+    fd->privdata = fs_find_free_dir_structure();
     if (fd->privdata == NULL) {
-        fd->privdata = malloc(sizeof(DIR));
+        _fs_unlock();
+        return -EMFILE;
     }
 
-    ret = f_opendir(fd->privdata, name);
+    ret = f_opendir(fd->privdata, modified_name);
 
     if (ret != FR_OK) {
-        free(fd->privdata);
         fd->privdata = NULL;
         ret          = -ret;
     }
@@ -337,7 +490,6 @@ static int fs_dclose(iop_file_t *fd)
 
     if (fd->privdata) {
         ret = f_closedir(fd->privdata);
-        free(fd->privdata);
         fd->privdata = NULL;
     }
 
@@ -349,8 +501,10 @@ static int fs_dclose(iop_file_t *fd)
 
 static void fileInfoToStat(FILINFO *fno, iox_stat_t *stat)
 {
-    unsigned char *cdate = (unsigned char *)&(fno->fdate);
-    unsigned char *ctime = (unsigned char *)&(fno->ftime);
+    WORD fdate = fno->fdate;
+    WORD ftime = fno->ftime;
+    unsigned char stime[8];
+    u16 year;
 
     stat->attr           = 0777;
     stat->size           = (unsigned int)(fno->fsize);
@@ -366,33 +520,27 @@ static void fileInfoToStat(FILINFO *fno, iox_stat_t *stat)
         stat->mode |= FIO_S_IWOTH;
     }
 
-    // set created Date: Day, Month, Year
-    stat->ctime[4] = cdate[0];
-    stat->ctime[5] = cdate[1];
-    stat->ctime[6] = cdate[2];
-    stat->ctime[7] = cdate[3];
+    // Since the VFAT file system does not support timezones, the timezone offset will not be applied.
+    // exFAT does support timezones, but the feature is not used/exposed in the FatFs library.
+    // Thus, conversion to/from JST may be incorrect.
+    // For simplicity's sake, the timezone is not read from the system configuration and timezone conversion is not done.
 
-    // set created Time: Hours, Minutes, Seconds
-    stat->ctime[3] = ctime[0];
-    stat->ctime[2] = ctime[1];
-    stat->ctime[1] = ctime[2];
+    stime[0] = 0; // Padding
 
-    // set accessed Date: Day, Month, Year
-    stat->atime[4] = cdate[0];
-    stat->atime[5] = cdate[1];
-    stat->atime[6] = cdate[2];
-    stat->atime[7] = cdate[3];
+    stime[4] = (fdate & 31); // Day
+    stime[5] = (fdate >> 5) & 15; // Month
 
-    // set modified Date: Day, Month, Year
-    stat->mtime[4] = cdate[0];
-    stat->mtime[5] = cdate[1];
-    stat->mtime[6] = cdate[2];
-    stat->mtime[7] = cdate[3];
+    year = (fdate >> 9) + 1980;
+    stime[6] = year & 0xff; // Year (low bits)
+    stime[7] = (year >> 8) & 0xff; // Year (high bits)
 
-    // set modified Time: Hours, Minutes, Seconds
-    stat->mtime[3] = ctime[0];
-    stat->mtime[2] = ctime[1];
-    stat->mtime[1] = ctime[2];
+    stime[3] = (ftime >> 11); // Hours
+    stime[2] = (ftime >> 5) & 63; // Minutes
+    stime[1] = (ftime << 1) & 31; // Seconds (multiplied by 2)
+
+    memcpy(stat->ctime, stime, sizeof(stime));
+    memcpy(stat->atime, stime, sizeof(stime));
+    memcpy(stat->mtime, stime, sizeof(stime));
 }
 
 //---------------------------------------------------------------------------
@@ -429,13 +577,30 @@ static int fs_getstat(iop_file_t *fd, const char *name, iox_stat_t *stat)
 
     int ret;
     FILINFO fno;
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_DEFINITIONS(name);
 
-    if (fd->privdata == NULL)
-        return -ENOENT;
+    // FatFs f_stat doesn't handle the root directory, so we'll handle this case ourselves.
+    {
+        const char *name_no_leading_slash = name;
+        while (*name_no_leading_slash == '/') {
+            name_no_leading_slash += 1;
+        }
+        if ((strcmp(name_no_leading_slash, "") == 0) || (strcmp(name_no_leading_slash, ".") == 0)) {
+            if (fatfs_fs_driver_get_mounted_bd_from_index(fd->unit) == NULL) {
+                return -ENXIO;
+            }
+            // Return data indicating that it is a directory.
+            memset(stat, 0, sizeof(*stat));
+            stat->mode = FIO_S_IROTH | FIO_S_IWOTH | FIO_S_IXOTH | FIO_S_IFDIR;
+            return 0;
+        }
+    }
+
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_IMPLEMENTATION(name, fd);
 
     _fs_lock();
 
-    ret = f_stat(name, &fno);
+    ret = f_stat(modified_name, &fno);
 
     if (ret == FR_OK) {
         fileInfoToStat(&fno, stat);
@@ -486,7 +651,7 @@ int fs_ioctl2(iop_file_t *fd, int cmd, void *data, unsigned int datalen, void *r
     (void)data;
     (void)datalen;
 
-    if ((file == NULL) || (mounted_bd == NULL))
+    if (file == NULL)
         return -ENXIO;
 
     _fs_lock();
@@ -504,9 +669,12 @@ int fs_ioctl2(iop_file_t *fd, int cmd, void *data, unsigned int datalen, void *r
         case USBMASS_IOCTL_GET_LBA:
             ret = clst2sect(file->obj.fs, file->obj.sclust);
             break;
-        case USBMASS_IOCTL_GET_DRIVERNAME:
-            ret = *(int *)(mounted_bd->name);
+        case USBMASS_IOCTL_GET_DRIVERNAME: {
+            struct block_device *mounted_bd;
+            mounted_bd = fatfs_fs_driver_get_mounted_bd_from_index(fd->unit);
+            ret = (mounted_bd == NULL) ? -ENXIO : *(int *)(mounted_bd->name);
             break;
+        }
         case USBMASS_IOCTL_CHECK_CHAIN:
             ret = get_frag_list(file, NULL, 0) == 1 ? 1 : 0;
             break;
@@ -532,13 +700,15 @@ int fs_rename(iop_file_t *fd, const char *path, const char *newpath)
     M_DEBUG("%s\n", __func__);
 
     int ret;
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_DEFINITIONS(path);
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_DEFINITIONS(newpath);
 
-    if (fd->privdata == NULL)
-        return -ENXIO;
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_IMPLEMENTATION(path, fd);
+    FATFS_FS_DRIVER_NAME_ALLOC_ON_STACK_IMPLEMENTATION(newpath, fd);
 
     _fs_lock();
 
-    ret = f_rename(path, newpath);
+    ret = f_rename(modified_path, modified_newpath);
 
     _fs_unlock();
     return -ret;
@@ -547,7 +717,6 @@ int fs_rename(iop_file_t *fd, const char *path, const char *newpath)
 static int fs_devctl(iop_file_t *fd, const char *name, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen)
 {
     int ret;
-    FIL *file = ((FIL *)(fd->privdata));
 
     (void)name;
     (void)arg;
@@ -555,23 +724,24 @@ static int fs_devctl(iop_file_t *fd, const char *name, int cmd, void *arg, unsig
     (void)buf;
     (void)buflen;
 
-    if ((file == NULL) || (mounted_bd == NULL))
-        return -ENXIO;
-
     _fs_lock();
 
 
     switch (cmd) {
-        case USBMASS_DEVCTL_STOP_UNIT:
-        case USBMASS_DEVCTL_STOP_ALL:
-            mounted_bd->stop(mounted_bd);
-            f_unmount("");
-            mounted_bd = NULL;
+        case USBMASS_DEVCTL_STOP_UNIT: {
+            fatfs_fs_driver_stop_all_bd();
             ret        = FR_OK;
             break;
-        default:
+        }
+        case USBMASS_DEVCTL_STOP_ALL: {
+            fatfs_fs_driver_stop_single_bd(fd->unit);
+            ret        = FR_OK;
+            break;
+        }
+        default: {
             ret = -ENXIO;
             break;
+        }
     }
 
     _fs_unlock();
@@ -620,6 +790,9 @@ static iop_device_t fs_driver = {
 int InitFS(void)
 {
     M_DEBUG("%s\n", __func__);
+
+    fs_reset();
+    fatfs_fs_driver_initialize_all_mount_info();
 
     DelDrv(fs_driver.name);
     return (AddDrv(&fs_driver) == 0 ? 0 : -1);

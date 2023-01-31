@@ -9,6 +9,9 @@
 SUBDIRS = \
 	netman \
 	smap \
+	smap-modular-netman \
+	smap-modular-none \
+	smap-none \
 	smap-ps2ip \
 	smbman \
 	udptty
