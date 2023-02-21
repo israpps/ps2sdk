@@ -129,7 +129,7 @@ static int call_rpc_3(int func, int arg1, int arg2, int arg3)
 
 	sbuff[0] = arg1;
 	sbuff[1] = arg2;
-	sbuff[2] = arg2;
+	sbuff[2] = arg3;
 	SifCallRpc(&cd0, func, 0, sbuff, 3*4, sbuff, 4, NULL, NULL);
 
 	ret = sbuff[0];
@@ -420,9 +420,9 @@ int audsrv_adpcm_set_volume_and_pan(int ch, int volume, int pan)
 	int volumer = volume;
 
 	if (pan < 0)
-		volumer = volumer * -pan / 100;
+		volumer = volumer * (100 + pan) / 100;
 	else if (pan > 0)
-		volumel = volumel * pan / 100;
+		volumel = volumel * (100 - pan) / 100;
 
 	return call_rpc_3(AUDSRV_ADPCM_SET_VOLUME, ch, vol_values[volumel/4], vol_values[volumer/4]);
 }
@@ -482,6 +482,17 @@ int audsrv_ch_play_adpcm(int ch, audsrv_adpcm_t *adpcm)
 {
 	/* on iop side, the sample id is like the pointer on ee side */
 	return call_rpc_2(AUDSRV_PLAY_ADPCM, ch, (u32)adpcm);
+}
+
+int audsrv_is_adpcm_playing(int ch, audsrv_adpcm_t *adpcm)
+{
+	return call_rpc_2(AUDSRV_IS_ADPCM_PLAYING, ch, (u32)adpcm);
+}
+
+int audsrv_free_adpcm(audsrv_adpcm_t *adpcm)
+{
+	/* on iop side, the sample id is like the pointer on ee side */
+	return call_rpc_1(AUDSRV_FREE_ADPCM, (u32)adpcm);
 }
 
 const char *audsrv_get_error_string()
