@@ -17,6 +17,7 @@
 #include <kernel.h>
 #include <string.h>
 #include <sifrpc.h>
+#include <stdint.h>
 
 #include "slib.h"
 #include "smod.h"
