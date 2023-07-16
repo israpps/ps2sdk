@@ -11,6 +11,7 @@ SUBDIRS = \
 	mcman-old \
 	mcserv \
 	mcserv-old \
+	vmcman \
 	xfromman
 
 include $(PS2SDKSRC)/Defs.make
