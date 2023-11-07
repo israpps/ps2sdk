@@ -64,4 +64,4 @@ jobs:
           automatic_release_tag: ${{ format('{0}_{1}', 'IRX', matrix.debug) }}
           title: "latest IRX Binaries"
           files: |
-            ~/IRX.zip
+             IRX.zip
