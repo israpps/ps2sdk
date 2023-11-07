@@ -41,7 +41,7 @@ jobs:
         if: ${{ success() }}
         run: |
           mv $PS2SDK/iop/irx/ ~/IOP/
-          zip -q 9 IRX.zip ~/IOP/*.*
+          zip -q 9 ~/IRX.zip ~/IOP/*.*
 
       - name: Get short SHA
         id: slug
@@ -64,4 +64,4 @@ jobs:
           automatic_release_tag: ${{ format('{0}_{1}', 'IRX', matrix.debug) }}
           title: "latest IRX Binaries"
           files: |
-             IRX.zip
+             ~/IRX.zip
