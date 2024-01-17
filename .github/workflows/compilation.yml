@@ -41,7 +41,7 @@ jobs:
         if: ${{ success() }}
         run: |
           mv $PS2SDK/iop/irx/ ~/IOP/
-          zip 9 IRX.zip ~/IOP/*
+          zip IRX.zip ~/IOP/*
 
       - name: Get short SHA
         id: slug
