@@ -29,10 +29,13 @@ IOP_OPTFLAGS ?= -Os
 # Warning compiler flags
 IOP_WARNFLAGS ?= -Wall -Werror
 
+# Debug information flags
+IOP_DBGINFOFLAGS ?= -gdwarf-2 -gz
+
 # C compiler flags
 # -fno-builtin is required to prevent the GCC built-in functions from being included,
 #   for finer-grained control over what goes into each IRX.
-IOP_CFLAGS := -D_IOP -fno-builtin -G0 $(IOP_OPTFLAGS) $(IOP_WARNFLAGS) $(IOP_INCS) $(IOP_CFLAGS)
+IOP_CFLAGS := -D_IOP -fno-builtin -G0 $(IOP_OPTFLAGS) $(IOP_WARNFLAGS) $(IOP_DBGINFOFLAGS) $(IOP_INCS) $(IOP_CFLAGS)
 ifeq ($(DEBUG),1)
 IOP_CFLAGS += -DDEBUG
 endif
@@ -92,7 +95,7 @@ $(IOP_OBJS_DIR)%.o: $(IOP_SRC_DIR)%.s
 
 $(IOP_OBJS_DIR)template-imports.h:
 	$(DIR_GUARD)
-	$(ECHO) "#include \"irx_imports.h\"" > $@
+	$(PRINTF) '%s\n' "#include \"irx_imports.h\"" > $@
 
 # Rules to build imports.lst.
 $(IOP_OBJS_DIR)build-imports.c: $(IOP_OBJS_DIR)template-imports.h $(IOP_SRC_DIR)imports.lst
@@ -105,7 +108,7 @@ $(IOP_OBJS_DIR)imports.o: $(IOP_OBJS_DIR)build-imports.c
 
 $(IOP_OBJS_DIR)template-exports.h:
 	$(DIR_GUARD)
-	$(ECHO) "#include \"irx.h\"" > $@
+	$(PRINTF) '%s\n' "#include \"irx.h\"" > $@
 
 # Rules to build exports.tab.
 $(IOP_OBJS_DIR)build-exports.c: $(IOP_OBJS_DIR)template-exports.h $(IOP_SRC_DIR)exports.tab

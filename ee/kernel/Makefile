@@ -65,16 +65,26 @@ GLUE_OBJS += SyncDCache.o iSyncDCache.o InvalidDCache.o iInvalidDCache.o
 SIO_OBJS = sio_init.o sio_putc.o sio_getc.o sio_write.o sio_read.o sio_puts.o \
 	sio_gets.o sio_getc_block.o sio_flush.o sio_putsn.o
 
-ROM0_OBJS = _info_internals.o GetRomName.o IsDESRMachine.o IsT10K.o
+ROM0_OBJS = _info_internals.o GetRomNameWithIODriver.o GetRomName.o IsDESRMachineWithIODriver.o IsDESRMachine.o IsT10KWithIODriver.o IsT10K.o
 
 ### Config objects
 
-CONFIG_OBJS = _config_internals.o IsEarlyJap.o configGetLanguage.o \
-	configSetLanguage.o configGetTvScreenType.o configSetTvScreenType.o \
-	configGetDateFormat.o configSetDateFormat.o configGetTimeFormat.o \
-	configSetTimeFormat.o configGetTimezone.o configSetTimezone.o \
-	configIsSpdifEnabled.o configSetSpdifEnabled.o configGetTime.o \
-	configIsDaylightSavingEnabled.o configSetDaylightSavingEnabled.o
+CONFIG_OBJS = _config_internals.o converttobcd.o convertfrombcd.o __adjustTime.o IsEarlyJap.o \
+	configGetLanguageWithIODriver.o configGetLanguage.o \
+	configSetLanguageWithIODriver.o configSetLanguage.o \
+	configGetTvScreenTypeWithIODriver.o configGetTvScreenType.o \
+	configSetTvScreenTypeWithIODriver.o configSetTvScreenType.o \
+	configGetDateFormatWithIODriver.o configGetDateFormat.o \
+	configSetDateFormatWithIODriver.o configSetDateFormat.o \
+	configGetTimeFormatWithIODriver.o configGetTimeFormat.o \
+	configSetTimeFormatWithIODriver.o configSetTimeFormat.o \
+	configGetTimezoneWithIODriver.o configGetTimezone.o \
+	configSetTimezoneWithIODriver.o configSetTimezone.o \
+	configIsSpdifEnabledWithIODriver.o configIsSpdifEnabled.o \
+	configSetSpdifEnabledWithIODriver.o configSetSpdifEnabled.o \
+	configIsDaylightSavingEnabledWithIODriver.o configIsDaylightSavingEnabled.o \
+	configSetDaylightSavingEnabledWithIODriver.o configSetDaylightSavingEnabled.o \
+	configConvertToGmtTime.o configConvertToLocalTimeWithIODriver.o configConvertToLocalTime.o
 
 ### Patch objects
 
@@ -92,9 +102,55 @@ EXIT_OBJS += _exit_internals.o SetArg.o Exit.o ExecPS2.o LoadExecPS2.o ExecOSD.o
 
 ### Timer objects
 
-TIMER_OBJS = __time_internals.o StartTimerSystemTime.o StopTimerSystemTime.o iGetTimerSystemTime.o GetTimerSystemTime.o cpu_ticks.o
-TIMER_ALARM_OBJS = TimerAlarmInternals.o __Timer2Resched.o InitTimerAlarm.o DeinitTimerAlarm.o InitializeTimerAlarm.o \
-	iStopTimerAlarm.o StopTimerAlarm.o iStartTimerAlarm.o StartTimerAlarm.o SetTimerAlarm.o ThreadWaitClock.o
+TIMER_OBJS = \
+	timer_data.o \
+	SetT2.o \
+	SetT2_COUNT.o \
+	SetT2_MODE.o \
+	SetT2_COMP.o \
+	InitTimer.o \
+	EndTimer.o \
+	GetTimerPreScaleFactor.o \
+	StartTimerSystemTime.o \
+	StopTimerSystemTime.o \
+	SetNextComp.o \
+	InsertAlarm_ForTimer.o \
+	UnlinkAlarm_ForTimer.o \
+	TimerHandler_callback.o \
+	iGetTimerSystemTime.o \
+	GetTimerSystemTime.o \
+	iAllocTimerCounter.o \
+	AllocTimerCounter.o \
+	iFreeTimerCounter.o \
+	FreeTimerCounter.o \
+	iGetTimerUsedUnusedCounters.o \
+	GetTimerUsedUnusedCounters.o \
+	iStartTimerCounter.o \
+	StartTimerCounter.o \
+	iStopTimerCounter.o \
+	StopTimerCounter.o \
+	SetTimerCount.o \
+	iGetTimerBaseTime.o \
+	GetTimerBaseTime.o \
+	iGetTimerCount.o \
+	GetTimerCount.o \
+	iSetTimerHandler.o \
+	SetTimerHandler.o \
+	TimerBusClock2USec.o \
+	TimerUSec2BusClock.o \
+	TimerBusClock2Freq.o \
+	TimerFreq2BusClock.o \
+	cpu_ticks.o
+TIMER_ALARM_OBJS = \
+	alarm_data.o \
+	ForTimer_InitAlarm.o \
+	AlarmHandler.o \
+	iSetTimerAlarm.o \
+	SetTimerAlarm.o \
+	iReleaseTimerAlarm.o \
+	ReleaseTimerAlarm.o
+DELAYTHREAD_OBJS = \
+	DelayThread.o
 
 ### Getter objects
 
@@ -103,6 +159,10 @@ GETKERNEL_OBJS = GetSyscallHandler.o GetSyscall.o GetExceptionHandler.o GetInter
 ### System initialization objects
 
 INITSYS_OBJS = _InitSys.o TerminateLibrary.o
+
+### Kernel utility objects
+
+KERNEL_UTIL_OBJS = WaitSemaEx.o
 
 ### SYSCALL OBJECTS
 
@@ -141,8 +201,8 @@ KERNEL_OBJS = ResetEE.o SetGsCrt.o $(EXEC_SYSCALLS) \
 
 EE_OBJS = $(KERNEL_OBJS) $(SIFCMD_OBJS) $(SIFRPC_OBJS) $(FILEIO_OBJS) \
 	$(LOADFILE_OBJS) $(IOPHEAP_OBJS) $(IOPCONTROL_OBJS) $(ROM0_OBJS) $(CONFIG_OBJS) \
-	$(GLUE_OBJS) $(SIO_OBJS) $(TIMER_OBJS) $(TIMER_ALARM_OBJS) $(GETKERNEL_OBJS) \
-	$(INITSYS_OBJS) erl-support.o
+	$(GLUE_OBJS) $(SIO_OBJS) $(TIMER_OBJS) $(TIMER_ALARM_OBJS) $(DELAYTHREAD_OBJS) $(GETKERNEL_OBJS) \
+	$(INITSYS_OBJS) $(KERNEL_UTIL_OBJS) erl-support.o
 
 
 EE_OBJS += $(THREAD_OBJS) $(LIBOSD_OBJS) $(TLBFUNC_OBJS) $(ALARM_OBJS) $(EXIT_OBJS) $(SETUP_OBJS) setup_syscalls.o debug.o
@@ -188,6 +248,10 @@ $(TIMER_ALARM_OBJS:%=$(EE_OBJS_DIR)%): $(EE_SRC_DIR)timer_alarm.c
 	$(DIR_GUARD)
 	$(EE_C_COMPILE) -DF_$(*:$(EE_OBJS_DIR)%=%) $< -c -o $@
 
+$(DELAYTHREAD_OBJS:%=$(EE_OBJS_DIR)%): $(EE_SRC_DIR)delaythread.c
+	$(DIR_GUARD)
+	$(EE_C_COMPILE) -DF_$(*:$(EE_OBJS_DIR)%=%) $< -c -o $@
+
 $(GETKERNEL_OBJS:%=$(EE_OBJS_DIR)%): $(EE_SRC_DIR)getkernel.c
 	$(DIR_GUARD)
 	$(EE_C_COMPILE) -DF_$(*:$(EE_OBJS_DIR)%=%) $< -c -o $@
@@ -217,6 +281,10 @@ $(SIO_OBJS:%=$(EE_OBJS_DIR)%): $(EE_SRC_DIR)sio.c
 	$(EE_C_COMPILE) -DF_$(*:$(EE_OBJS_DIR)%=%) $< -c -o $@
 
 $(INITSYS_OBJS:%=$(EE_OBJS_DIR)%): $(EE_SRC_DIR)initsys.c
+	$(DIR_GUARD)
+	$(EE_C_COMPILE) -DF_$(*:$(EE_OBJS_DIR)%=%) $< -c -o $@
+
+$(KERNEL_UTIL_OBJS:%=$(EE_OBJS_DIR)%): $(EE_SRC_DIR)kernel_util.c
 	$(DIR_GUARD)
 	$(EE_C_COMPILE) -DF_$(*:$(EE_OBJS_DIR)%=%) $< -c -o $@
 

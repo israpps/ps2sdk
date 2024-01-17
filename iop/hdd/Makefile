@@ -8,7 +8,9 @@
 
 SUBDIRS = \
 	apa \
+	apa-bdm \
 	apa-gpt \
+	apa-iomanx \
 	apa-osd \
 	apa-xosd \
 	pfs \
