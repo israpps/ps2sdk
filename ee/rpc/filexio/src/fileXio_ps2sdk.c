@@ -97,7 +97,7 @@ int __fileXioOpenHelper(_libcglue_fdman_fd_info_t *info, const char *buf, int fl
             return -ENOMEM;
         }
         userdata->fd = iop_fd;
-        memcpy(userdata, buf, buf_len);
+        memcpy(userdata->filename, buf, buf_len);
         userdata->filename[buf_len] = '\x00';
         info->userdata = (void *)userdata;
         info->ops = is_dir ? &__fileXio_fdman_ops_dir : &__fileXio_fdman_ops_file;
@@ -294,7 +294,6 @@ int __fileXioLseekHelper(void *userdata, int offset, int whence);
 #ifdef F___fileXioLseek64Helper
 int64_t __fileXioLseek64Helper(void *userdata, int64_t offset, int whence)
 {
-    int rv;
     int fd;
 
     fd = __fileXioGetFdHelper(userdata);
@@ -303,8 +302,7 @@ int64_t __fileXioLseek64Helper(void *userdata, int64_t offset, int whence)
         return fd;
     }
 
-    rv = fileXioLseek64(fd, offset, whence);
-    return rv;
+    return fileXioLseek64(fd, offset, whence);
 }
 #else
 int64_t __fileXioLseek64Helper(void *userdata, int64_t offset, int whence);
@@ -346,6 +344,25 @@ int __fileXioIoctlHelper(void *userdata, int request, void *data)
 }
 #else
 int __fileXioIoctlHelper(void *userdata, int request, void *data);
+#endif
+
+#ifdef F___fileXioIoctl2Helper
+int __fileXioIoctl2Helper(void *userdata, int request, void *arg, unsigned int arglen, void *buf, unsigned int buflen)
+{
+    int rv;
+    int fd;
+
+    fd = __fileXioGetFdHelper(userdata);
+    if (fd < 0)
+    {
+        return fd;
+    }
+
+    rv = fileXioIoctl2(fd, request, arg, arglen, buf, buflen);
+    return rv;
+}
+#else
+int __fileXioIoctl2Helper(void *userdata, int request, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 #endif
 
 #ifdef F___fileXioDreadHelper
@@ -441,6 +458,7 @@ int __attribute__((weak)) _rename(const char *old, const char *new);
 int __attribute__((weak)) mkdir(const char *path, mode_t mode);
 int __attribute__((weak)) rmdir(const char *path);
 int __attribute__((weak)) _stat(const char *path, struct stat *buf);
+int __attribute__((weak)) _fstat(int fd, struct stat *buf);
 ssize_t __attribute__((weak)) readlink(const char *path, char *buf, size_t bufsiz);
 int __attribute__((weak)) symlink(const char *target, const char *linkpath);
 int __attribute__((weak)) _close(int fd);
@@ -465,7 +483,7 @@ extern void __fileXioOpsInitializeImpl(void)
     // cppcheck-suppress knownConditionTrueFalse
     if (&rmdir) __fileXio_fdman_path_ops.rmdir = fileXioRmdir;
     // cppcheck-suppress knownConditionTrueFalse
-    if (&_stat) __fileXio_fdman_path_ops.stat = __fileXioGetstatHelper;
+    if ((&_stat) || (&_fstat)) __fileXio_fdman_path_ops.stat = __fileXioGetstatHelper;
     // cppcheck-suppress knownConditionTrueFalse
     if (&readlink) __fileXio_fdman_path_ops.readlink = fileXioReadlink;
     // cppcheck-suppress knownConditionTrueFalse
@@ -486,6 +504,7 @@ extern void __fileXioOpsInitializeImpl(void)
     if (&_write) __fileXio_fdman_ops_file.write = __fileXioWriteHelper;
     // cppcheck-suppress knownConditionTrueFalse
     if (&_ioctl) __fileXio_fdman_ops_file.ioctl = __fileXioIoctlHelper;
+    __fileXio_fdman_ops_file.ioctl2 = __fileXioIoctl2Helper;
 
     memset(&__fileXio_fdman_ops_dir, 0, sizeof(__fileXio_fdman_ops_dir));
     __fileXio_fdman_ops_dir.getfd = __fileXioGetFdHelper;

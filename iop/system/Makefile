@@ -11,8 +11,9 @@ SUBDIRS = \
 	dmacman \
 	eesync \
 	eesync-nano \
-	threadman \
-	timrman \
+	excepman \
+	intrman \
+	intrmanp \
 	ioman \
 	iomanx \
 	iopmgr \
@@ -27,6 +28,9 @@ SUBDIRS = \
 	rpadman \
 	rsio2man \
 	sbusintr \
+	sifcmd \
+	sifinit \
+	sifman \
 	siftoo \
 	sio2log \
 	sio2man \
@@ -36,8 +40,12 @@ SUBDIRS = \
 	sysclib \
 	sysclib-full \
 	sysclib-nano \
+	threadman \
+	timrman \
+	timrmanp \
 	udnl \
-	udnl-t300
+	udnl-t300 \
+	vblank
 
 include $(PS2SDKSRC)/Defs.make
 include $(PS2SDKSRC)/Rules.make
