@@ -560,14 +560,15 @@ void SecrSetMcDevIDHandler(McDevIDHandler_t handler)
 // This is the most badass function in the whole file. Not only was it difficult to see whether I got all the pointers right, it invokes many functions, making it a difficult one to debug. I tried to make the buffer names the same as within the FMCB PS3MCA bundle's Card_Authentificate() function.
 int SecrAuthCard(int port, int slot, int cnum)
 {
-    unsigned char MechaChallenge2[8], CardIV[8], CardMaterial[8], CardNonce[8], MechaChallenge1[8], MechaChallenge3[8], CardResponse1[8], CardResponse2[8], CardResponse3[8];
+    unsigned char MechaChallenge2[8], CardIV[8], CardMaterial[8], CardNonce[8],
+                  MechaChallenge1[8], MechaChallenge3[8], CardResponse1[8], CardResponse2[8], CardResponse3[8];
 
     if (GetMcCommandHandler() == NULL) {
         _printf("mcCommand isn't assigned\n");
         return 0;
     }
 
-    _printf("SecrAuthCard start\n");
+    _printf("SecrAuthCard start (%d %d %d)\n", port, slot, cnum);
 
     memset(MechaChallenge1, 0, sizeof(MechaChallenge1));
 
@@ -618,12 +619,14 @@ int SecrAuthCard(int port, int slot, int cnum)
     }
 
     _printf("card auth 0x01\n");
+    _printf(" CardIV: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardIV));
 
     if (card_auth_read(port, slot, CardMaterial, 0xF0, 0x02) == 0) {
         goto Error2_end;
     }
 
     _printf("card auth 0x02\n");
+    _printf(" CardMaterial: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardMaterial));
 
     if (mechacon_auth_82(CardIV, CardMaterial) == 0) {
         goto Error2_end;
@@ -642,6 +645,7 @@ int SecrAuthCard(int port, int slot, int cnum)
     }
 
     _printf("card auth 0x04\n");
+    _printf(" CardNonce: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardNonce));
 
     if (mechacon_auth_83(CardNonce) == 0) {
         goto Error2_end;
@@ -666,12 +670,16 @@ int SecrAuthCard(int port, int slot, int cnum)
     }
 
     _printf("mechacon auth 0x84\n");
+    _printf(" MechaChallenge1: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(MechaChallenge1));
+    _printf(" MechaChallenge2: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(MechaChallenge2));
 
     if (mechacon_auth_85(&MechaChallenge2[4], MechaChallenge3) == 0) {
         goto Error2_end;
     }
 
     _printf("mechacon auth 0x85\n");
+    _printf(" MechaChallenge2: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(MechaChallenge2));
+    _printf(" MechaChallenge3: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(MechaChallenge3));
 
     if (card_auth_write(port, slot, MechaChallenge3, 0xF0, 0x06) == 0) {
         goto Error2_end;
@@ -732,6 +740,7 @@ int SecrAuthCard(int port, int slot, int cnum)
     }
 
     _printf("card auth 0x0f\n");
+    _printf(" CardResponse1: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardResponse1));
 
     if (card_auth(port, slot, 0xF0, 0x10) == 0) {
         goto Error2_end;
@@ -744,6 +753,7 @@ int SecrAuthCard(int port, int slot, int cnum)
     }
 
     _printf("card auth 0x11\n");
+    _printf(" CardResponse2: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardResponse2));
 
     if (mechacon_auth_86(CardResponse1, CardResponse2) == 0) {
         goto Error2_end;
@@ -762,6 +772,7 @@ int SecrAuthCard(int port, int slot, int cnum)
     }
 
     _printf("card auth 0x13\n");
+    _printf(" CardResponse3: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardResponse3));
 
     if (mechacon_auth_87(CardResponse3) == 0) {
         goto Error2_end;
@@ -1155,7 +1166,7 @@ int SecrAuthDongle(int port, int slot, int cnum)
         return 0;
     }
 
-    _printf("SecrAuthDongle start\n");
+    _printf("SecrAuthDongle start (%d %d %d)\n", port, slot, cnum);
 
     memset(MechaChallenge1, 0, sizeof(MechaChallenge1));
 
@@ -1195,12 +1206,14 @@ int SecrAuthDongle(int port, int slot, int cnum)
     }
 
     _printf("dongle auth 0x01\n");
+    _printf(" CardIV: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardIV));
 
     if (card_auth_read(port, slot, CardMaterial, 0xF0, 0x02) == 0) {
         goto Error2_end;
     }
 
     _printf("dongle auth 0x02\n");
+    _printf(" CardMaterial: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardMaterial));
 
     if (mechacon_auth_82(CardIV, CardMaterial) == 0) {
         goto Error2_end;
@@ -1219,6 +1232,7 @@ int SecrAuthDongle(int port, int slot, int cnum)
     }
 
     _printf("dongle auth 0x04\n");
+    _printf(" CardNonce: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardNonce));
 
     if (mechacon_auth_83(CardNonce) == 0) {
         goto Error2_end;
@@ -1243,12 +1257,16 @@ int SecrAuthDongle(int port, int slot, int cnum)
     }
 
     _printf("mechacon auth 0x84\n");
+    _printf(" MechaChallenge1: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(MechaChallenge1));
+    _printf(" MechaChallenge2: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(MechaChallenge2));
 
     if (mechacon_auth_85(&MechaChallenge2[4], MechaChallenge3) == 0) {
         goto Error2_end;
     }
 
     _printf("mechacon auth 0x85\n");
+    _printf(" MechaChallenge2: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(MechaChallenge2));
+    _printf(" MechaChallenge3: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(MechaChallenge3));
 
     if (card_auth_write(port, slot, MechaChallenge3, 0xF0, 0x06) == 0) {
         goto Error2_end;
@@ -1310,6 +1328,7 @@ int SecrAuthDongle(int port, int slot, int cnum)
     }
 
     _printf("dongle auth 0x0f\n");
+    _printf(" CardResponse1: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardResponse1));
 
     if (card_auth(port, slot, 0xF0, 0x10) == 0) {
         goto Error2_end;
@@ -1322,6 +1341,7 @@ int SecrAuthDongle(int port, int slot, int cnum)
     }
 
     _printf("dongle auth 0x11\n");
+    _printf(" CardResponse2: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardResponse2));
 
     if (mechacon_auth_86(CardResponse1, CardResponse2) == 0) {
         goto Error2_end;
@@ -1340,6 +1360,7 @@ int SecrAuthDongle(int port, int slot, int cnum)
     }
 
     _printf("dongle auth 0x13\n");
+    _printf(" CardResponse3: " PRINT_8BYTE_BUFF_FMT "\n", PRINT_8BYTE_BUFF(CardResponse3));
 
     if (mechacon_auth_87(CardResponse3) == 0) {
         goto Error2_end;

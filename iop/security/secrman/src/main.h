@@ -16,3 +16,6 @@
 #define _printf3(args...)
 #define _printf4(args...)
 #endif
+
+#define PRINT_8BYTE_BUFF_FMT "%X %X %X %X %X %X %X %X"
+#define PRINT_8BYTE_BUFF(x) x[0], x[1], x[2], x[3], x[4], x[5], x[6], x[7]
