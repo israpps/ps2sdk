@@ -29,6 +29,7 @@ int _start(int argc, char *argv[])
     
     if(tty_init() != 0)
     {
+        tty_puts("Failed initializing PPC TTY system!\n");
         printf("Failed initializing PPC TTY system!\n");
         return MODULE_NO_RESIDENT_END;
     }
