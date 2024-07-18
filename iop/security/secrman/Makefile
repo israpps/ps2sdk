@@ -5,7 +5,7 @@
 # Copyright 2001-2004, ps2dev - http://www.ps2dev.org
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
-
+DEBUG=1
 IOP_INCS += -I$(PS2SDKSRC)/iop/system/sio2man/include/
 
 IOP_OBJS = secrman.o MechaAuth.o CardAuth.o keyman.o imports.o exports.o

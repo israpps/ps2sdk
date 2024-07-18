@@ -5,11 +5,12 @@
   * _printf(): enables debug printf on CardAuth.c
   */
 
+
 #ifdef DEBUG
-#define _printf(args...) printf("SECRMAN: "args)
-#define _printf2(args...) printf("SECRMAN: "args)
-#define _printf3(args...) printf("SECRMAN: "args)
-#define _printf4(args...) printf("SECRMAN: "args)
+#define _printf(format, args...) printf("SECRMAN:%s: " format, __FUNCTION__, ##args)
+#define _printf2(format, args...) printf("SECRMAN:%s: " format, __FUNCTION__, ##args)
+#define _printf3(format, args...) printf("SECRMAN:%s: " format, __FUNCTION__, ##args)
+#define _printf4(format, args...) printf("SECRMAN:%s: " format, __FUNCTION__, ##args)
 #else
 #define _printf(args...)
 #define _printf2(args...)
