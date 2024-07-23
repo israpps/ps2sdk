@@ -9,6 +9,19 @@
 IRX_ID(MODNAME, 1, 0);
 
 volatile uint8_t *PPC_UART_TX = (volatile uint8_t *) 0x1F80380C;
+volatile uint8_t *PPC_UART_RX = (volatile uint8_t *) 0x01000200; //UART FIFO
+volatile uint8_t *PPC_UART_STATUS_REGISTER = (volatile uint8_t *) 0x01000205;
+
+int tty_read(void* buf, int size)
+{
+    int i = 0;
+    while (*PPC_UART_STATUS_REGISTER & 1 != 0) {
+        if (++i < size) {
+            c = *PPC_UART_RX;
+        } else break;
+    }
+    return i;
+}
 
 // send a string to PPC TTY for output.
 void tty_puts(const char *str)
