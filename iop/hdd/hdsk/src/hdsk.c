@@ -20,7 +20,6 @@
 #include <irx.h>
 #include <hdd-ioctl.h>
 
-#include "apa-opt.h"
 #include "libapa.h"
 #include "hdsk-devctl.h"
 #include "hdsk.h"
@@ -725,33 +724,33 @@ static int HdskDevctl(iomanX_iop_file_t *fd, const char *name, int cmd, void *ar
 }
 
 static iomanX_iop_device_ops_t HdskDeviceOps = {
-    &HdskInit,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    &HdskDevctl,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
+    &HdskInit, // init
+    DUMMY_IMPLEMENTATION, // deinit
+    NOT_SUPPORTED, // format
+    NOT_SUPPORTED, // open
+    NOT_SUPPORTED, // close
+    NOT_SUPPORTED, // read
+    NOT_SUPPORTED, // write
+    NOT_SUPPORTED, // lseek
+    NOT_SUPPORTED, // ioctl
+    NOT_SUPPORTED, // remove
+    NOT_SUPPORTED, // mkdir
+    NOT_SUPPORTED, // rmdir
+    NOT_SUPPORTED, // dopen
+    NOT_SUPPORTED, // dclose
+    NOT_SUPPORTED, // dread
+    NOT_SUPPORTED, // getstat
+    NOT_SUPPORTED, // chstat
+    NOT_SUPPORTED, // rename
+    NOT_SUPPORTED, // chdir
+    NOT_SUPPORTED, // sync
+    NOT_SUPPORTED, // mount
+    NOT_SUPPORTED, // umount
+    NOT_SUPPORTED_S64, // lseek64
+    &HdskDevctl, // devctl
+    NOT_SUPPORTED, // symlink
+    NOT_SUPPORTED, // readlink
+    NOT_SUPPORTED, // ioctl2
 };
 
 static iomanX_iop_device_t HdskDevice = {

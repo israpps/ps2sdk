@@ -44,33 +44,6 @@ static int ttyfs_deinit()
 	return 0;
 }
 
-static int ttyfs_open(iop_file_t *file, const char *name, int flags)
-{
-    (void)file;
-    (void)name;
-    (void)flags;
-
-    DPRINTF("FS Open()\n");
-	return 0;
-}
-
-static int ttyfs_dopen(iop_file_t *file, const char *name)
-{
-    (void)file;
-    (void)name;
-
-    DPRINTF("FS Dopen()\n");
-    return 0;
-}
-
-static int ttyfs_close(iop_file_t *file)
-{
-    (void)file;
-
-    DPRINTF("FS Close()\n");
-    return(0);
-}
-
 static int ttyfs_write(iop_file_t *file, void *ptr, int size) {
     char temp[65];
     int bCount = 0;
@@ -101,23 +74,23 @@ static int ttyfs_write(iop_file_t *file, void *ptr, int size) {
 
 static iop_device_ops_t fsd_ops =
 {
-    &ttyfs_init,
-    &ttyfs_deinit,
-    NOT_SUPPORTED,
-    &ttyfs_open,
-    &ttyfs_close,
-	NOT_SUPPORTED,
-    &ttyfs_write,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-	&ttyfs_dopen,
-    &ttyfs_close,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
+    &ttyfs_init, // init
+    &ttyfs_deinit, // deinit
+    NOT_SUPPORTED, // format
+    NOT_SUPPORTED, // open
+    NOT_SUPPORTED, // close
+    NOT_SUPPORTED, // read
+    &ttyfs_write, // write
+    NOT_SUPPORTED, // lseek
+    NOT_SUPPORTED, // ioctl
+    NOT_SUPPORTED, // remove
+    NOT_SUPPORTED, // mkdir
+    NOT_SUPPORTED, // rmdir
+    NOT_SUPPORTED, // dopen
+    NOT_SUPPORTED, // dclose
+    NOT_SUPPORTED, // dread
+    NOT_SUPPORTED, // getstat
+    NOT_SUPPORTED, // chstat
 };
 
 static iop_device_t tty_fsd =

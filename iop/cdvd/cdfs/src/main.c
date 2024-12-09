@@ -419,23 +419,23 @@ static int fio_getstat(iop_file_t *fd, const char *name, io_stat_t *stat)
 }
 
 static iop_device_ops_t fio_ops = {
-    &fio_init,
-    &fio_deinit,
-    NOT_SUPPORTED,
-    &fio_open,
-    &fio_close,
-    &fio_read,
-    &fio_write,
-    &fio_lseek,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    &fio_openDir,
-    &fio_closeDir,
-    &fio_dread,
-    &fio_getstat,
-    NOT_SUPPORTED,
+    &fio_init, // init
+    &fio_deinit, // deinit
+    NOT_SUPPORTED, // format
+    &fio_open, // open
+    &fio_close, // close
+    &fio_read, // read
+    &fio_write, // write
+    &fio_lseek, // lseek
+    NOT_SUPPORTED, // ioctl
+    NOT_SUPPORTED, // remove
+    NOT_SUPPORTED, // mkdir
+    NOT_SUPPORTED, // rmdir
+    &fio_openDir, // dopen
+    &fio_closeDir, // dclose
+    &fio_dread, // dread
+    &fio_getstat, // getstat
+    NOT_SUPPORTED, // chstat
 };
 
 static iop_device_t fio_driver = {

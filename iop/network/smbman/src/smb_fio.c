@@ -26,33 +26,33 @@ int smbman_io_sema;
 
 // driver ops func tab
 static iop_device_ops_t smbman_ops = {
-    &smb_init,
-    &smb_deinit,
-    NOT_SUPPORTED,
-    &smb_open,
-    &smb_close,
-    &smb_read,
-    &smb_write,
-    &smb_lseek,
-    NOT_SUPPORTED,
-    &smb_remove,
-    &smb_mkdir,
-    &smb_rmdir,
-    &smb_dopen,
-    &smb_dclose,
-    &smb_dread,
-    &smb_getstat,
-    NOT_SUPPORTED,
-    &smb_rename,
-    &smb_chdir,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    &smb_lseek64,
-    &smb_devctl,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED
+    &smb_init, // init
+    &smb_deinit, // deinit
+    NOT_SUPPORTED, // format
+    &smb_open, // open
+    &smb_close, // close
+    &smb_read, // read
+    &smb_write, // write
+    &smb_lseek, // lseek
+    NOT_SUPPORTED, // ioctl
+    &smb_remove, // remove
+    &smb_mkdir, // mkdir
+    &smb_rmdir, // rmdir
+    &smb_dopen, // dopen
+    &smb_dclose, // dclose
+    &smb_dread, // dread
+    &smb_getstat, // getstat
+    NOT_SUPPORTED, // chstat
+    &smb_rename, // rename
+    &smb_chdir, // chdir
+    NOT_SUPPORTED, // sync
+    NOT_SUPPORTED, // mount
+    NOT_SUPPORTED, // umount
+    &smb_lseek64, // lseek64
+    &smb_devctl, // devctl
+    NOT_SUPPORTED, // symlink
+    NOT_SUPPORTED, // readlink
+    NOT_SUPPORTED, // ioctl2
 };
 
 // driver descriptor

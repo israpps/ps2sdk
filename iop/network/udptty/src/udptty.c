@@ -44,23 +44,23 @@ static int tty_write(iop_file_t *file, void *buf, size_t size);
 
 /* device ops */
 static iop_device_ops_t tty_ops = {
-    tty_init,
-    tty_deinit,
-    NOT_SUPPORTED,
-    (void *)tty_stdout_fd,
-    (void *)tty_stdout_fd,
-    NOT_SUPPORTED,
-    (void *)tty_write,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
+    tty_init, // init
+    tty_deinit, // deinit
+    NOT_SUPPORTED, // format
+    (void *)tty_stdout_fd, // open
+    (void *)tty_stdout_fd, // close
+    NOT_SUPPORTED, // read
+    (void *)tty_write, // write
+    NOT_SUPPORTED, // lseek
+    NOT_SUPPORTED, // ioctl
+    NOT_SUPPORTED, // remove
+    NOT_SUPPORTED, // mkdir
+    NOT_SUPPORTED, // rmdir
+    NOT_SUPPORTED, // dopen
+    NOT_SUPPORTED, // dclose
+    NOT_SUPPORTED, // dread
+    NOT_SUPPORTED, // getstat
+    NOT_SUPPORTED, // chstat
 };
 
 /* device descriptor */

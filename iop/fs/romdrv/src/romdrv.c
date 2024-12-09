@@ -42,33 +42,31 @@ static struct RomFileSlot fileSlots[ROMDRV_MAX_FILES];
 
 /* Function prototypes */
 static int init(void);
-static int romInit(iop_device_t *device);
 static int romOpen(iop_file_t *fd, const char *path, int mode);
 static int romClose(iop_file_t *);
 static int romRead(iop_file_t *fd, void *buffer, int size);
-static int romWrite(iop_file_t *fd, void *buffer, int size);
 static int romLseek(iop_file_t *fd, int offset, int whence);
 static struct RomImg *romGetImageStat(const void *start, const void *end, struct RomImg *ImageStat);
 static struct RomdirFileStat *GetFileStatFromImage(const struct RomImg *ImageStat, const char *filename, struct RomdirFileStat *stat);
 
 static iop_device_ops_t ops = {
-    &romInit,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    &romOpen,
-    &romClose,
-    &romRead,
-    &romWrite,
-    &romLseek,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED
+    DUMMY_IMPLEMENTATION, // init
+    DUMMY_IMPLEMENTATION, // deinit
+    NOT_SUPPORTED, // format
+    &romOpen, // open
+    &romClose, // close
+    &romRead, // read
+    NOT_SUPPORTED, // write
+    &romLseek, // lseek
+    NOT_SUPPORTED, // ioctl
+    NOT_SUPPORTED, // remove
+    NOT_SUPPORTED, // mkdir
+    NOT_SUPPORTED, // rmdir
+    NOT_SUPPORTED, // dopen
+    NOT_SUPPORTED, // dclose
+    NOT_SUPPORTED, // dread
+    NOT_SUPPORTED, // getstat
+    NOT_SUPPORTED, // chstat
 };
 
 static iop_device_t DeviceOps = {
@@ -107,13 +105,6 @@ static int init(void)
     memset(fileSlots, 0, sizeof(fileSlots));
     // Add DEV2 (Boot ROM) as rom0. Unlike ROMDRV v1.1, the code for DEV1 is in the ADDDRV module.
     romGetImageStat((const void *)0xbfc00000, (const void *)0xbfc40000, &images[0]);
-    return 0;
-}
-
-static int romInit(iop_device_t *device)
-{
-    (void)device;
-
     return 0;
 }
 
@@ -258,15 +249,6 @@ static int romRead(iop_file_t *fd, void *buffer, int size)
     slot->offset += size;
 
     return size;
-}
-
-static int romWrite(iop_file_t *fd, void *buffer, int size)
-{
-    (void)fd;
-    (void)buffer;
-    (void)size;
-
-    return -EIO;
 }
 
 static int romLseek(iop_file_t *fd, int offset, int whence)
