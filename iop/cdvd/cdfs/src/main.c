@@ -9,16 +9,19 @@
 
 // 16 sectors worth of toc entry
 #define MAX_FILES_PER_FOLDER 256
-#define MAX_FILES_OPENED 16
-#define MAX_FOLDERS_OPENED 16
+#define MAX_FILES_OPENED 4
+#define MAX_FOLDERS_OPENED 4
 #define MAX_BYTES_READ 16384
 
 #define DRIVER_UNIT_NAME "cdfs"
-#define DRIVER_UNIT_VERSION 2
-#define VERSION_STRINGIFY(x) #x
+#define DRIVER_MAJOR_VERSION 2
+#define DRIVER_MINOR_VERSION 2
 
+#define STRINGIFY(x) #x
+#define TOSTRING(x) STRINGIFY(x)
+#define DRIVER_DESC DRIVER_UNIT_NAME " Filedriver v" TOSTRING(DRIVER_MAJOR_VERSION) "." TOSTRING(DRIVER_MINOR_VERSION)
 
-IRX_ID(MODNAME, 1, 1);
+IRX_ID(MODNAME, DRIVER_MAJOR_VERSION, DRIVER_MINOR_VERSION);
 
 struct fdtable
 {
@@ -296,7 +299,7 @@ static int fio_openDir(iop_file_t *f, const char *path) {
     if (j >= MAX_FOLDERS_OPENED)
         return -ESRCH;
 
-    fod_table[j].files = cdfs_getDir(path, NULL, CDFS_GET_FILES_AND_DIRS, fod_table[j].entries, MAX_FILES_PER_FOLDER);
+    fod_table[j].files = cdfs_getDir(path, fod_table[j].entries, MAX_FILES_PER_FOLDER);
     if (fod_table[j].files < 0) {
         printf("The path doesn't exist\n\n");
         return -ENOENT;
@@ -381,10 +384,10 @@ static int fio_dread(iop_file_t *fd, io_dirent_t *dirent)
     dirent->stat.mode = (entry.fileProperties == CDFS_FILEPROPERTY_DIR) ? FIO_SO_IFDIR : FIO_SO_IFREG;
     dirent->stat.attr = entry.fileProperties;
     dirent->stat.size = entry.fileSize;
-    memcpy(dirent->stat.ctime, entry.dateStamp, 8);
-    memcpy(dirent->stat.atime, entry.dateStamp, 8);
-    memcpy(dirent->stat.mtime, entry.dateStamp, 8);
-    strncpy(dirent->name, entry.filename, 128);
+    memcpy(dirent->stat.ctime, entry.dateStamp, sizeof(entry.dateStamp));
+    memcpy(dirent->stat.atime, entry.dateStamp, sizeof(entry.dateStamp));
+    memcpy(dirent->stat.mtime, entry.dateStamp, sizeof(entry.dateStamp));
+    strncpy(dirent->name, entry.filename, sizeof(dirent->name));
     
     fod_table[i].filesIndex++;
     return fod_table[i].filesIndex;
@@ -411,38 +414,40 @@ static int fio_getstat(iop_file_t *fd, const char *name, io_stat_t *stat)
     stat->mode = (entry.fileProperties == CDFS_FILEPROPERTY_DIR) ? FIO_SO_IFDIR : FIO_SO_IFREG;
     stat->attr = entry.fileProperties;
     stat->size = entry.fileSize;
-    memcpy(stat->ctime, entry.dateStamp, 8);
-    memcpy(stat->atime, entry.dateStamp, 8);
-    memcpy(stat->mtime, entry.dateStamp, 8);
+    memcpy(stat->ctime, entry.dateStamp, sizeof(entry.dateStamp));
+    memcpy(stat->atime, entry.dateStamp, sizeof(entry.dateStamp));
+    memcpy(stat->mtime, entry.dateStamp, sizeof(entry.dateStamp));
 
     return ret;
 }
 
+IOMAN_RETURN_VALUE_IMPL(EIO);
+
 static iop_device_ops_t fio_ops = {
     &fio_init, // init
     &fio_deinit, // deinit
-    NOT_SUPPORTED, // format
+    IOMAN_RETURN_VALUE(EIO), // format
     &fio_open, // open
     &fio_close, // close
     &fio_read, // read
     &fio_write, // write
     &fio_lseek, // lseek
-    NOT_SUPPORTED, // ioctl
-    NOT_SUPPORTED, // remove
-    NOT_SUPPORTED, // mkdir
-    NOT_SUPPORTED, // rmdir
+    IOMAN_RETURN_VALUE(EIO), // ioctl
+    IOMAN_RETURN_VALUE(EIO), // remove
+    IOMAN_RETURN_VALUE(EIO), // mkdir
+    IOMAN_RETURN_VALUE(EIO), // rmdir
     &fio_openDir, // dopen
     &fio_closeDir, // dclose
     &fio_dread, // dread
     &fio_getstat, // getstat
-    NOT_SUPPORTED, // chstat
+    IOMAN_RETURN_VALUE(EIO), // chstat
 };
 
 static iop_device_t fio_driver = {
     DRIVER_UNIT_NAME,
     IOP_DT_FS,
-    DRIVER_UNIT_VERSION,
-    DRIVER_UNIT_NAME " Filedriver v" VERSION_STRINGIFY(DRIVER_UNIT_VERSION),
+    DRIVER_MAJOR_VERSION,
+    DRIVER_DESC,
     &fio_ops,
 };
 
