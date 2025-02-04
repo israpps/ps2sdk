@@ -1161,7 +1161,7 @@ int SecrAuthDongle(int port, int slot, int cnum)
 
     _printf("SecrAuthDongle start\n");
 
-    memset(MechaChallenge1, 0, sizeof(MechaChallenge1));
+    memset(MechaChallenge2, 0, sizeof(MechaChallenge2)); // El_isra: homebrew secrman memsets challenge1, but arcade secrman memsets challenge2
 
     if (card_auth_60(port, slot) == 0) {
         return 0;
@@ -1176,8 +1176,7 @@ int SecrAuthDongle(int port, int slot, int cnum)
     _printf("mechacon auth 0x80\n");
 
     /* El_isra:
-     *  SecrAuthDongle does not perform the card_auth_key_change that should be here
-     *  Is this what makes COH-H models only accept one dongle per boot session?
+     *  SecrAuthDongle does not perform the card_auth_key_change because dongles dont support more than one mg type like retail cards
      */
 
     if (card_auth(port, slot, 0xF0, 0x00) == 0) {
