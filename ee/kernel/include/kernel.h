@@ -505,20 +505,20 @@ extern void SetVSyncFlag(u32 *, u64 *);
 extern void SetSyscall(s32 syscall_num, void *handler);
 extern void _print(const char *fmt, ...);    // Disabled by default, must call InitDebug() to enable
 
-extern void SifStopDma(void); // Disables SIF0 (IOP -> EE).
+extern void sceSifStopDma(void); // Disables SIF0 (IOP -> EE).
 
-extern s32 SifDmaStat(u32 id);
-extern s32 iSifDmaStat(u32 id);
-extern u32 SifSetDma(SifDmaTransfer_t *sdd, s32 len);
-extern u32 iSifSetDma(SifDmaTransfer_t *sdd, s32 len);
+extern int sceSifDmaStat(int trid);
+extern int sceiSifDmaStat(int trid);
+extern int sceSifSetDma(SifDmaTransfer_t *dmat, int count);
+extern int isceSifSetDma(SifDmaTransfer_t *dmat, int count);
 
 // Enables SIF0 (IOP -> EE). Sets channel 5 CHCR to 0x184 (CHAIN, TIE and STR).
-extern void SifSetDChain(void);
-extern void iSifSetDChain(void);
+extern void sceSifSetDChain(void);
+extern void isceSifSetDChain(void);
 
 // Sets/gets SIF register values (Refer to sifdma.h for a register list).
-extern int SifSetReg(u32 register_num, int register_value);
-extern int SifGetReg(u32 register_num);
+extern int sceSifSetReg(u32 register_num, int register_value);
+extern int sceSifGetReg(u32 register_num);
 
 extern void _ExecOSD(int num_args, char *args[]) __attribute__((noreturn));
 extern s32 Deci2Call(s32, u32 *);
@@ -531,9 +531,12 @@ extern void _GetGsDxDyOffset(int mode, int *dx, int *dy, int *dw, int *dh);
 
 // Internal function for reinitializing the TLB, only present in later kernels. Please use InitTLB() instead to initialize the TLB with all kernels.
 extern int _InitTLB(void);
-/* (PSX only) Sets the memory size. 0 = 64MB mode, 1 = 32MB mode. The mode is only binding when either _InitTLB() or the PSX ExecPS2() syscall is called.
+/* (DESR kernels only) Sets the memory size. mode != 1 -> 64MB mode, mode == 1 -> 32MB mode.
+   The mode is only binding when either _InitTLB() or the PSX ExecPS2() syscall is called.
    The stack pointer must remain in range of usable memory, or a TLB exception will occur. */
 extern int SetMemoryMode(int mode); // Arbitrarily named.
+/* (DESR kernels only) Get the value set by SetMemoryMode. */
+extern int GetMemoryMode(void); // Arbitrarily named.
 
 extern void _SyncDCache(void *start, void *end);
 extern void _InvalidDCache(void *start, void *end);
@@ -549,6 +552,17 @@ extern int Copy(void *dest, const void *src, int size);
 extern void setup(int syscall_num, void *handler); // alias of "SetSyscall"
 extern void *GetEntryAddress(int syscall);
 
+// For backwards compatibility
+#define SifStopDma(...) sceSifStopDma(__VA_ARGS__)
+// SifDmaStat defined in sifdma.h
+#define iSifDmaStat(...) isceSifDmaStat(__VA_ARGS__)
+// SifSetDma defined in sifdma.h
+#define iSifSetDma(...) isceSifSetDma(__VA_ARGS__)
+#define SifSetDChain(...) sceSifSetDChain(__VA_ARGS__)
+#define iSifSetDChain(...) isceSifSetDChain(__VA_ARGS__)
+#define SifSetReg(...) sceSifSetReg(__VA_ARGS__)
+#define SifGetReg(...) sceSifGetReg(__VA_ARGS__)
+
 // Helpers marcos for no-patch versions 
 // Useful to build a special version of libkernel that does not contain any runtime patches (useful for loaders/resident programs).
 #define DISABLE_PATCHED_Exit() \
@@ -561,10 +575,8 @@ extern void *GetEntryAddress(int syscall);
     void ExecOSD(int num_args, char *args[]) { _ExecOSD(num_args, args); }
 
 #define DISABLE_TimerSystemTime() \
-    s32 InitTimer(s32 in_mode) {(void)in_mode; return 0;} \
-    s32 EndTimer(void) {return 0;} \
-    s32 StartTimerSystemTime(void) {return 0;} \
-    s32 StopTimerSystemTime(void) {return 0;}
+    void _ps2sdk_init_timer() {} \
+    void _ps2sdk_deinit_timer() {}
 
 #define DISABLE_TimerAlarm() \
     void ForTimer_InitAlarm(void) {}

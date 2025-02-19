@@ -79,6 +79,30 @@ extern timer_ee_global_struct g_Timer;
 extern counter_struct_t g_CounterBuf[COUNTER_COUNT] __attribute__((aligned(64)));
 #endif
 
+#ifdef F__ps2sdk_init_timer
+void __attribute__((weak)) _ps2sdk_init_timer_impl(void);
+__attribute__((weak)) void _ps2sdk_init_timer(void)
+{
+    // cppcheck-suppress knownConditionTrueFalse
+    if (&_ps2sdk_init_timer_impl)
+    {
+        _ps2sdk_init_timer_impl();
+    }
+}
+#endif
+
+#ifdef F__ps2sdk_deinit_timer
+void __attribute__((weak)) _ps2sdk_deinit_timer_impl(void);
+__attribute__((weak)) void _ps2sdk_deinit_timer(void)
+{
+    // cppcheck-suppress knownConditionTrueFalse
+    if (&_ps2sdk_deinit_timer_impl)
+    {
+        _ps2sdk_deinit_timer_impl();
+    }
+}
+#endif
+
 #ifdef F_SetT2
 void SetT2(volatile void *ptr, u32 val)
 {
@@ -263,9 +287,10 @@ __attribute__((weak)) s32 StopTimerSystemTime(void)
 #endif
 
 #ifdef F_SetNextComp
+#define CLOCKS_GAP 0x200 // For assuring the timer interrupt is triggered
 void SetNextComp(u64 time_now)
 {
-    u64 a0, a1;
+    u64 current_schedule, next_schedule;
     counter_struct_t *timer_current;
 
     if (g_Timer.current_handling_timer_id >= 0)
@@ -279,14 +304,16 @@ void SetNextComp(u64 time_now)
         SetT2_MODE((*T2_MODE) & (~(1 << 11)));
         return;
     }
-    a0 = timer_current->timer_schedule + timer_current->timer_base_time - timer_current->timer_base_count;
+    current_schedule = timer_current->timer_schedule + timer_current->timer_base_time - timer_current->timer_base_count;
     timer_current = timer_current->timer_next;
+    
+    // Grouping the timers that are so close to each other, to reduce the number of interrupts
     while (timer_current != NULL)
     {
-        a1 = timer_current->timer_schedule + timer_current->timer_base_time - timer_current->timer_base_count;
-        if (a1 < (a0 + 0x733))
+        next_schedule = timer_current->timer_schedule + timer_current->timer_base_time - timer_current->timer_base_count;
+        if (next_schedule < (current_schedule + CLOCKS_GAP))
         {
-            a0 = a1;
+            current_schedule = next_schedule;
         }
         else
         {
@@ -294,15 +321,15 @@ void SetNextComp(u64 time_now)
         }
         timer_current = timer_current->timer_next;
     }
-    if (a0 < (time_now + 0x733))
+    if (current_schedule < (time_now + CLOCKS_GAP))
     {
-        SetT2_COMP((*T2_COUNT) + (0x733 >> (((*T2_MODE) & 3) << 2)));
+        SetT2_COMP((*T2_COUNT) + (CLOCKS_GAP >> (((*T2_MODE) & 3) << 2)));
         SetT2_MODE((*T2_MODE) & (~(1 << 11)));
     }
     else
     {
         SetT2_MODE((*T2_MODE) & (~(1 << 11)));
-        SetT2_COMP(a0 >> (((*T2_MODE) & 3) << 2));
+        SetT2_COMP(current_schedule >> (((*T2_MODE) & 3) << 2));
     }
 }
 #endif
@@ -474,6 +501,18 @@ u64 iGetTimerSystemTime(void)
     timer_system_time_now = (timer_handled_count << 16) | low;
     timer_system_time_now = timer_system_time_now << ((mode & 3) << 2);
     return timer_system_time_now;
+}
+
+void _ps2sdk_init_timer_impl(void)
+{
+    InitTimer(2);
+    StartTimerSystemTime();
+}
+
+void _ps2sdk_deinit_timer_impl(void)
+{
+    StopTimerSystemTime();
+    EndTimer();
 }
 #endif
 

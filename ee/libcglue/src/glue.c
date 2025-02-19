@@ -788,7 +788,7 @@ int _gettimeofday(struct timeval *tv, struct timezone *tz)
 		u32 busclock_usec;
 
 		TimerBusClock2USec(GetTimerSystemTime(), &busclock_sec, &busclock_usec);
-		tv->tv_sec = (time_t)(_ps2sdk_rtc_offset_from_busclk + ((s64)busclock_sec));
+		tv->tv_sec = (time_t)(_libcglue_rtc_get_offset_from_busclk() + ((s64)busclock_sec));
 		tv->tv_usec = busclock_usec;
 	}
 
@@ -805,7 +805,12 @@ int _gettimeofday(struct timeval *tv, struct timezone *tz)
 #ifdef F__times
 // Called from newlib timesr.c
 clock_t _times(struct tms *buffer) {
-	clock_t clk = GetTimerSystemTime() / (kBUSCLK / (1000 * 1000));
+	clock_t clk;
+	u32 busclock_sec;
+	u32 busclock_usec;
+
+	TimerBusClock2USec(GetTimerSystemTime(), &busclock_sec, &busclock_usec);
+	clk = busclock_sec * CLOCKS_PER_SEC + busclock_usec;
 
 	if (buffer != NULL) {
 		buffer->tms_utime  = clk;
@@ -1141,8 +1146,8 @@ long fpathconf(int fd, int name)
 
 #ifdef F_fsync
 int fsync(int fd) {
-	// TODO: implement in terms of sync
-	return 0;
+	errno = ENOSYS;
+	return -1; /* not supported */
 }
 #endif
 
