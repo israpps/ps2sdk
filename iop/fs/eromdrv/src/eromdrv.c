@@ -42,9 +42,7 @@ typedef struct erom_fdpriv_
 	u32 m_xordata_size;
 } erom_fdpriv_t;
 
-static int erom_nulldev(void);
 static int erom_op_close(iop_file_t *f);
-static int erom_op_write(iop_file_t *f, void *ptr, int size);
 static int erom_op_lseek(iop_file_t *f, int pos, int mode);
 static int erom_op_open(iop_file_t *f, const char *name, int mode);
 static int erom_op_read(iop_file_t *f, void *ptr, int size);
@@ -53,24 +51,27 @@ static int get_val_from_hash1(u32 obfval);
 static erom_info_t *get_erom_info(const u32 *erom_start, const u32 *erom_end, erom_info_t *info);
 static const erom_dentry_t *get_direntry_by_name(erom_info_t *info, const char *name);
 
+IOMAN_RETURN_VALUE_IMPL(0);
+IOMAN_RETURN_VALUE_IMPL(EIO);
+
 static iop_device_ops_t erom_devops = {
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	erom_op_open,
-	erom_op_close,
-	erom_op_read,
-	erom_op_write,
-	erom_op_lseek,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
-	(void *)erom_nulldev,
+	IOMAN_RETURN_VALUE(0), // init
+	IOMAN_RETURN_VALUE(0), // deinit
+	IOMAN_RETURN_VALUE(0), // format
+	&erom_op_open, // open
+	&erom_op_close, // close
+	&erom_op_read, // read
+	IOMAN_RETURN_VALUE(EIO), // write
+	&erom_op_lseek, // lseek
+	IOMAN_RETURN_VALUE(0), // ioctl
+	IOMAN_RETURN_VALUE(0), // remove
+	IOMAN_RETURN_VALUE(0), // mkdir
+	IOMAN_RETURN_VALUE(0), // rmdir
+	IOMAN_RETURN_VALUE(0), // dopen
+	IOMAN_RETURN_VALUE(0), // dclose
+	IOMAN_RETURN_VALUE(0), // dread
+	IOMAN_RETURN_VALUE(0), // getstat
+	IOMAN_RETURN_VALUE(0), // chstat
 };
 
 static iop_device_t erom_dev = {
@@ -85,11 +86,6 @@ static erom_fdpriv_t erom_fdpriv;
 static erom_info_t erom_info;
 static const erom_dentry_t *erom_dentry;
 
-static int erom_nulldev(void)
-{
-	return 0;
-}
-
 static int erom_op_close(iop_file_t *f)
 {
 	(void)f;
@@ -97,15 +93,6 @@ static int erom_op_close(iop_file_t *f)
 		return -EBADF;
 	erom_dentry = NULL;
 	return 0;
-}
-
-static int erom_op_write(iop_file_t *f, void *ptr, int size)
-{
-	(void)f;
-	(void)ptr;
-	(void)size;
-
-	return -EIO;
 }
 
 static int erom_op_lseek(iop_file_t *f, int pos, int mode)

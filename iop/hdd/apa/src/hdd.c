@@ -29,7 +29,6 @@
 #include <iomanX.h>
 #include <hdd-ioctl.h>
 
-#include "apa-opt.h"
 #include <libapa.h>
 #include "hdd.h"
 #include "hdd_fio.h"
@@ -39,34 +38,36 @@
 IRX_ID("hdd_driver", APA_MODVER_MAJOR, APA_MODVER_MINOR);
 #endif
 
+IOMANX_RETURN_VALUE_IMPL(EPERM);
+
 static iomanX_iop_device_ops_t hddOps={
-	&hddInit,
-	&hddDeinit,
-	&hddFormat,
-	&hddOpen,
-	&hddClose,
-	&hddRead,
-	&hddWrite,
-	&hddLseek,
-	NOT_SUPPORTED,
-	&hddRemove,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	&hddDopen,
-	&hddClose,
-	&hddDread,
-	&hddGetStat,
-	NOT_SUPPORTED,
-	&hddReName,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	hddMount,
-	hddUmount,
-	NOT_SUPPORTED,
-	&hddDevctl,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	&hddIoctl2,
+	&hddInit, // init
+	&hddDeinit, // deinit
+	&hddFormat, // format
+	&hddOpen, // open
+	&hddClose, // close
+	&hddRead, // read
+	&hddWrite, // write
+	&hddLseek, // lseek
+	IOMANX_RETURN_VALUE(EPERM), // ioctl
+	&hddRemove, // remove
+	IOMANX_RETURN_VALUE(EPERM), // mkdir
+	IOMANX_RETURN_VALUE(EPERM), // rmdir
+	&hddDopen, // dopen
+	&hddClose, // dclose
+	&hddDread, // dread
+	&hddGetStat, // getstat
+	IOMANX_RETURN_VALUE(EPERM), // chstat
+	&hddReName, // rename
+	IOMANX_RETURN_VALUE(EPERM), // chdir
+	IOMANX_RETURN_VALUE(EPERM), // sync
+	hddMount, // mount
+	hddUmount, // umount
+	IOMANX_RETURN_VALUE_S64(EPERM), // lseek64
+	&hddDevctl, // devctl
+	IOMANX_RETURN_VALUE(EPERM), // symlink
+	IOMANX_RETURN_VALUE(EPERM), // readlink
+	&hddIoctl2, // ioctl2
 };
 static iomanX_iop_device_t hddFioDev={
 	"hdd",
@@ -338,7 +339,7 @@ int APA_ENTRYPOINT(int argc, char *argv[])
 	{
 		if(hddDevices[i].status<2)
 		{
-			if(apaJournalRestore(i) != 0)
+			if((hddDevices[i].status != 1) && apaJournalRestore(i) != 0)
 			{
 				APA_PRINTF(APA_DRV_NAME": error: log check failed.\n");
 				return hddInitError();

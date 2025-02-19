@@ -16,7 +16,6 @@
 IRX_ID(MODNAME, 2, 1);
 // Based on the module from PBPX-95216
 
-static int subfile_op_nulldev(void);
 static int subfile_op_open(iop_file_t *f, const char *name, int mode);
 static int subfile_op_close(iop_file_t *f);
 static int subfile_op_read(iop_file_t *f, void *ptr, int size);
@@ -30,24 +29,26 @@ typedef struct subfile_priv_fd_
 	int m_curpos;
 } subfile_priv_fd_t;
 
+IOMAN_RETURN_VALUE_IMPL(0);
+
 static iop_device_ops_t subfile_devops = {
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	subfile_op_open,
-	subfile_op_close,
-	subfile_op_read,
-	(void *)subfile_op_nulldev,
-	subfile_op_lseek,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
-	(void *)subfile_op_nulldev,
+	IOMAN_RETURN_VALUE(0), // init
+	IOMAN_RETURN_VALUE(0), // deinit
+	IOMAN_RETURN_VALUE(0), // format
+	&subfile_op_open, // open
+	&subfile_op_close, // close
+	&subfile_op_read, // read
+	IOMAN_RETURN_VALUE(0), // write
+	&subfile_op_lseek, // lseek
+	IOMAN_RETURN_VALUE(0), // ioctl
+	IOMAN_RETURN_VALUE(0), // remove
+	IOMAN_RETURN_VALUE(0), // mkdir
+	IOMAN_RETURN_VALUE(0), // rmdir
+	IOMAN_RETURN_VALUE(0), // dopen
+	IOMAN_RETURN_VALUE(0), // dclose
+	IOMAN_RETURN_VALUE(0), // dread
+	IOMAN_RETURN_VALUE(0), // getstat
+	IOMAN_RETURN_VALUE(0), // chstat
 };
 static iop_device_t subfile_dev = {
 	"subfile",
@@ -158,11 +159,6 @@ static int subfile_op_open(iop_file_t *f, const char *name, int mode)
 	subfile_info[i].m_curpos = 0;
 	CpuResumeIntr(state);
 	f->privdata = &subfile_info[i];
-	return 0;
-}
-
-static int subfile_op_nulldev(void)
-{
 	return 0;
 }
 

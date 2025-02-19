@@ -19,25 +19,26 @@ static int cddrv_write(iop_file_t *io, void *buf, int cnt);
 static int cddrv_lseek(iop_file_t *io, int offset, int whence);
 static int cddrv_ioctl(iop_file_t *io, int cmd, void *arg);
 
- 
+IOMAN_RETURN_VALUE_IMPL(EINVAL);
+
 static iop_device_ops_t Cddrv_ops = {
-	&cddrv_adddrv,
-	&cddrv_deldrv,
-	NOT_SUPPORTED,
-	&cddrv_open,
-	&cddrv_close,
-	&cddrv_read,
-	&cddrv_write,
-	&cddrv_lseek,
-	&cddrv_ioctl,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED
+	&cddrv_adddrv, // init
+	&cddrv_deldrv, // deinit
+	IOMAN_RETURN_VALUE(EINVAL), // format
+	&cddrv_open, // open
+	&cddrv_close, // close
+	&cddrv_read, // read
+	&cddrv_write, // write
+	&cddrv_lseek, // lseek
+	&cddrv_ioctl, // ioctl
+	IOMAN_RETURN_VALUE(EINVAL), // remove
+	IOMAN_RETURN_VALUE(EINVAL), // mkdir
+	IOMAN_RETURN_VALUE(EINVAL), // rmdir
+	IOMAN_RETURN_VALUE(EINVAL), // dopen
+	IOMAN_RETURN_VALUE(EINVAL), // dclose
+	IOMAN_RETURN_VALUE(EINVAL), // dread
+	IOMAN_RETURN_VALUE(EINVAL), // getstat
+	IOMAN_RETURN_VALUE(EINVAL), // chstat
 };
 
 static iop_device_t Cddrv = {"cdrom", 16u, 0u, "ATAPI_C/DVD-ROM", &Cddrv_ops};

@@ -28,7 +28,6 @@ static int esdrv_df_devctl(
 	iomanX_iop_file_t *f, const char *name, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 static int
 esdrv_df_ioctl2(iomanX_iop_file_t *f, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
-static s64 esdrv_df_null_long();
 static int
 esioctl2_func_1(iomanX_iop_file_t *f, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 static int
@@ -219,34 +218,36 @@ struct DevctlCmdTbl_t
 	{0x5473, &esioctl2_func_10},
 };
 
+IOMANX_RETURN_VALUE_IMPL(ENOTSUP);
+
 static iomanX_iop_device_ops_t DvrFuncTbl = {
-	&esdrv_df_init,
-	&esdrv_df_exit,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	&esdrv_df_ioctl,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	(void *)&esdrv_df_null_long,
-	&esdrv_df_devctl,
-	NOT_SUPPORTED,
-	NOT_SUPPORTED,
-	&esdrv_df_ioctl2,
+	&esdrv_df_init, // init
+	&esdrv_df_exit, // deinit
+	IOMANX_RETURN_VALUE(ENOTSUP), // format
+	IOMANX_RETURN_VALUE(ENOTSUP), // open
+	IOMANX_RETURN_VALUE(ENOTSUP), // close
+	IOMANX_RETURN_VALUE(ENOTSUP), // read
+	IOMANX_RETURN_VALUE(ENOTSUP), // write
+	IOMANX_RETURN_VALUE(ENOTSUP), // lseek
+	&esdrv_df_ioctl, // ioctl
+	IOMANX_RETURN_VALUE(ENOTSUP), // remove
+	IOMANX_RETURN_VALUE(ENOTSUP), // mkdir
+	IOMANX_RETURN_VALUE(ENOTSUP), // rmdir
+	IOMANX_RETURN_VALUE(ENOTSUP), // dopen
+	IOMANX_RETURN_VALUE(ENOTSUP), // dclose
+	IOMANX_RETURN_VALUE(ENOTSUP), // dread
+	IOMANX_RETURN_VALUE(ENOTSUP), // getstat
+	IOMANX_RETURN_VALUE(ENOTSUP), // chstat
+	IOMANX_RETURN_VALUE(ENOTSUP), // rename
+	IOMANX_RETURN_VALUE(ENOTSUP), // chdir
+	IOMANX_RETURN_VALUE(ENOTSUP), // sync
+	IOMANX_RETURN_VALUE(ENOTSUP), // mount
+	IOMANX_RETURN_VALUE(ENOTSUP), // umount
+	IOMANX_RETURN_VALUE_S64(ENOTSUP), // lseek64
+	&esdrv_df_devctl, // devctl
+	IOMANX_RETURN_VALUE(ENOTSUP), // symlink
+	IOMANX_RETURN_VALUE(ENOTSUP), // readlink
+	&esdrv_df_ioctl2, // ioctl2
 };
 static iomanX_iop_device_t ESDRV = {
 	.name = "es_drv",
@@ -369,11 +370,6 @@ esdrv_df_ioctl2(iomanX_iop_file_t *f, int cmd, void *arg, unsigned int arglen, v
 	WaitSema(sema_id);
 	SignalSema(sema_id);
 	return -EINVAL;
-}
-
-static s64 esdrv_df_null_long()
-{
-	return -EUNSUP;
 }
 
 static void EsAcsSetAaryptorIoMode(void)

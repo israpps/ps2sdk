@@ -24,35 +24,37 @@
 
 int smbman_io_sema;
 
+IOMANX_RETURN_VALUE_IMPL(EIO);
+
 // driver ops func tab
 static iop_device_ops_t smbman_ops = {
-    &smb_init,
-    &smb_deinit,
-    NOT_SUPPORTED,
-    &smb_open,
-    &smb_close,
-    &smb_read,
-    &smb_write,
-    &smb_lseek,
-    NOT_SUPPORTED,
-    &smb_remove,
-    &smb_mkdir,
-    &smb_rmdir,
-    &smb_dopen,
-    &smb_dclose,
-    &smb_dread,
-    &smb_getstat,
-    NOT_SUPPORTED,
-    &smb_rename,
-    &smb_chdir,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    &smb_lseek64,
-    &smb_devctl,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED
+    &smb_init, // init
+    &smb_deinit, // deinit
+    IOMANX_RETURN_VALUE(EIO), // format
+    &smb_open, // open
+    &smb_close, // close
+    &smb_read, // read
+    &smb_write, // write
+    &smb_lseek, // lseek
+    IOMANX_RETURN_VALUE(EIO), // ioctl
+    &smb_remove, // remove
+    &smb_mkdir, // mkdir
+    &smb_rmdir, // rmdir
+    &smb_dopen, // dopen
+    &smb_dclose, // dclose
+    &smb_dread, // dread
+    &smb_getstat, // getstat
+    IOMANX_RETURN_VALUE(EIO), // chstat
+    &smb_rename, // rename
+    &smb_chdir, // chdir
+    IOMANX_RETURN_VALUE(EIO), // sync
+    IOMANX_RETURN_VALUE(EIO), // mount
+    IOMANX_RETURN_VALUE(EIO), // umount
+    &smb_lseek64, // lseek64
+    &smb_devctl, // devctl
+    IOMANX_RETURN_VALUE(EIO), // symlink
+    IOMANX_RETURN_VALUE(EIO), // readlink
+    IOMANX_RETURN_VALUE(EIO), // ioctl2
 };
 
 // driver descriptor

@@ -8,9 +8,16 @@
 
 EE_LIB = libcglue.a
 
-CORE_OBJS = rtc.o
+RTC_OBJS = \
+	_libcglue_rtc_data.o \
+	_libcglue_rtc_get_offset_from_busclk.o \
+	_libcglue_rtc_update.o
 
-TIMEZONE_OBJS = _libcglue_timezone_update.o ps2sdk_setTimezone.o ps2sdk_setDaylightSaving.o
+TIMEZONE_OBJS = \
+	_libcglue_timezone_update_impl.o \
+	_libcglue_timezone_update.o \
+	ps2sdk_setTimezone.o \
+	ps2sdk_setDaylightSaving.o
 
 FDMAN_OBJS = \
 	__fdman_sema.o \
@@ -62,10 +69,12 @@ PS2SDKAPI_OBJS = \
 
 GLUE_OBJS = \
 	__dummy_passwd.o \
+	__dummy_group.o \
 	__transform_errno.o \
 	__transform64_errno.o \
 	compile_time_check.o \
 	_open.o \
+	pipe.o \
 	_close.o \
 	_read.o \
 	_write.o \
@@ -73,21 +82,34 @@ GLUE_OBJS = \
 	lstat.o \
 	_fstat.o \
 	access.o \
+	_ioctl.o \
 	_fcntl.o \
 	getdents.o \
 	_lseek.o \
 	lseek64.o \
 	chdir.o \
+	fchdir.o \
+	_mkdir.o \
 	mkdir.o \
 	rmdir.o \
 	_link.o \
 	_unlink.o \
 	_rename.o \
+	pause.o \
+	getitimer.o \
+	setitimer.o \
+	sched_yield.o \
 	_getpid.o \
+	getppid.o \
 	_kill.o \
+	sigprocmask.o \
+	sigaction.o \
 	_fork.o \
+	vfork.o \
 	_wait.o \
+	waitpid.o \
 	_execve.o \
+	_system.o \
 	_sbrk.o \
 	_gettimeofday.o \
 	_times.o \
@@ -95,22 +117,40 @@ GLUE_OBJS = \
 	clock_getres.o \
 	clock_gettime.o \
 	clock_settime.o \
+	readv.o \
+	writev.o \
 	truncate.o \
+	ftruncate.o \
+	_symlink.o \
 	symlink.o \
+	_readlink.o \
 	readlink.o \
 	utime.o \
+	utimes.o \
 	fchown.o \
 	getrandom.o \
 	_getentropy.o \
-	_isatty.o \
+	umask.o \
 	chmod.o \
 	fchmod.o \
+	_chown.o \
+	chown.o \
 	pathconf.o \
+	fpathconf.o \
 	fsync.o \
+	sysconf.o \
+	tcgetattr.o \
+	tcsetattr.o \
+	getlogin.o \
 	getuid.o \
 	geteuid.o \
+	getgid.o \
+	getegid.o \
 	getpwuid.o \
 	getpwnam.o \
+	issetugid.o \
+	getgrgid.o \
+	getgrnam.o \
 	libcglue_get_fd_info.o \
 	ps2sdk_get_iop_fd.o \
 	ps2sdk_get_iop_filename.o \
@@ -196,6 +236,7 @@ SOCKET_OBJS = \
 
 EE_OBJS = \
 	$(CORE_OBJS) \
+	$(RTC_OBJS) \
 	$(TIMEZONE_OBJS) \
 	$(SJIS_OBJS) \
 	$(TIME_OBJS) \
@@ -215,6 +256,10 @@ include $(PS2SDKSRC)/Defs.make
 include $(PS2SDKSRC)/ee/Rules.lib.make
 include $(PS2SDKSRC)/ee/Rules.make
 include $(PS2SDKSRC)/ee/Rules.release
+
+$(RTC_OBJS:%=$(EE_OBJS_DIR)%): $(EE_SRC_DIR)rtc.c
+	$(DIR_GUARD)
+	$(EE_C_COMPILE) -DF_$(*:$(EE_OBJS_DIR)%=%) $< -c -o $@
 
 $(TIMEZONE_OBJS:%=$(EE_OBJS_DIR)%): $(EE_SRC_DIR)timezone.c
 	$(DIR_GUARD)

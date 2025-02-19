@@ -84,34 +84,37 @@ struct ioman_dev_listentry
 
 static int showdrvflag = 1;
 #ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
+
+IOMANX_RETURN_VALUE_IMPL(0);
+
 static iomanX_iop_device_ops_t dev_tty_dev_operations = {
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	(void *)&tty_noop,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
-	NULL,
+	IOMANX_RETURN_VALUE(0), // init
+	IOMANX_RETURN_VALUE(0), // deinit
+	IOMANX_RETURN_VALUE(0), // format
+	IOMANX_RETURN_VALUE(0), // open
+	IOMANX_RETURN_VALUE(0), // close
+	IOMANX_RETURN_VALUE(0), // read
+	IOMANX_RETURN_VALUE(0), // write
+	IOMANX_RETURN_VALUE(0), // lseek
+	IOMANX_RETURN_VALUE(0), // ioctl
+	IOMANX_RETURN_VALUE(0), // remove
+	IOMANX_RETURN_VALUE(0), // mkdir
+	IOMANX_RETURN_VALUE(0), // rmdir
+	IOMANX_RETURN_VALUE(0), // dopen
+	IOMANX_RETURN_VALUE(0), // dclose
+	IOMANX_RETURN_VALUE(0), // dread
+	IOMANX_RETURN_VALUE(0), // getstat
+	IOMANX_RETURN_VALUE(0), // chstat
+	IOMANX_RETURN_VALUE(0), // rename
+	IOMANX_RETURN_VALUE(0), // chdir
+	IOMANX_RETURN_VALUE(0), // sync
+	IOMANX_RETURN_VALUE(0), // mount
+	IOMANX_RETURN_VALUE(0), // umount
+	IOMANX_RETURN_VALUE_S64(0), // lseek64
+	IOMANX_RETURN_VALUE(0), // devctl
+	IOMANX_RETURN_VALUE(0), // symlink
+	IOMANX_RETURN_VALUE(0), // readlink
+	IOMANX_RETURN_VALUE(0), // ioctl2
 };
 static iomanX_iop_device_t dev_tty = {
 	"tty",
@@ -182,7 +185,7 @@ static inline void handle_result_pre(int in_result, iomanX_iop_file_t *f, int op
 	{
 		if ( f )
 		{
-			f->mode = 0;
+			// Unofficial: don't clear mode
 			f->device = NULL;
 		}
 	}
@@ -190,8 +193,6 @@ static inline void handle_result_pre(int in_result, iomanX_iop_file_t *f, int op
 	{
 		if ( f && (in_result < 0) )
 		{
-			// Unofficial: also clear mode
-			f->mode = 0;
 			f->device = NULL;
 		}
 	}
@@ -608,10 +609,17 @@ int iomanX_remove(const char *name)
 {
 	iomanX_iop_file_t *f;
 	const char *parsefile_res;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(name, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -633,10 +641,17 @@ static int xx_stat(int op, const char *name, iox_stat_t *stat, unsigned int stat
 {
 	iomanX_iop_file_t *f;
 	const char *parsefile_res;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(name, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -702,10 +717,17 @@ int iomanX_format(const char *dev, const char *blockdev, void *arg, int arglen)
 {
 	iomanX_iop_file_t *f;
 	const char *parsefile_res;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(dev, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -722,10 +744,17 @@ static int xx_rename(int op, const char *oldname, const char *newname)
 	const char *parsefile_res_new;
 	iomanX_iop_device_t *device_new;
 	int unit_new;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(oldname, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -783,10 +812,17 @@ static int xx_dir(int op, const char *name, int mode)
 {
 	iomanX_iop_file_t *f;
 	const char *parsefile_res;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(name, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -822,10 +858,17 @@ int iomanX_mount(const char *fsname, const char *devname, int flag, void *arg, i
 {
 	iomanX_iop_file_t *f;
 	const char *parsefile_res;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(fsname, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -842,10 +885,17 @@ int iomanX_umount(const char *fsname)
 {
 	iomanX_iop_file_t *f;
 	const char *parsefile_res;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(fsname, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -860,10 +910,17 @@ int iomanX_devctl(const char *name, int cmd, void *arg, unsigned int arglen, voi
 {
 	iomanX_iop_file_t *f;
 	const char *parsefile_res;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(name, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -878,10 +935,17 @@ int iomanX_readlink(const char *path, char *buf, unsigned int buflen)
 {
 	iomanX_iop_file_t *f;
 	const char *parsefile_res;
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	iomanX_iop_file_t f_stk;
+#endif
 
+#ifdef IOMAN_USE_FILE_STRUCT_TEMP_STACK
+	f = &f_stk;
+#else
 	f = new_iob();
 	if ( !f )
 		return handle_result(-EMFILE, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
+#endif
 	parsefile_res = parsefile(path, &(f->device), &(f->unit));
 	if ( !parsefile_res )
 		return handle_result(-ENODEV, f, HANDLE_RESULT_CLEAR_INFO_ON_ERROR);
@@ -900,16 +964,23 @@ static iomanX_iop_file_t *new_iob(void)
 {
 	iomanX_iop_file_t *file_table_entry;
 	int state;
+	int fd;
 
+	fd = 0;
 	CpuSuspendIntr(&state);
-	file_table_entry = file_table;
-	while ( (file_table_entry < &file_table[sizeof(file_table) / sizeof(file_table[0])]) && file_table_entry->mode )
-		file_table_entry += 1;
-	if ( file_table_entry >= &file_table[sizeof(file_table) / sizeof(file_table[0])] )
-		file_table_entry = NULL;
-	// fill in "mode" temporarily to mark the fd as allocated.
+	file_table_entry = NULL;
+	while ( fd < (int)(sizeof(file_table) / sizeof(file_table[0])) )
+	{
+		if ( !file_table[fd].device )
+		{
+			file_table_entry = &file_table[fd];
+			break;
+		}
+		fd += 1;
+	}
+	// fill in "device" temporarily to mark the fd as allocated.
 	if ( file_table_entry )
-		file_table_entry->mode = -20;
+		file_table_entry->device = (iomanX_iop_device_t *)(uiptr)0xFFFFFFEC;
 	CpuResumeIntr(state);
 	if ( !file_table_entry )
 		_ioabort("out of file descriptors", "[too many open]");
@@ -918,7 +989,7 @@ static iomanX_iop_file_t *new_iob(void)
 
 static iomanX_iop_file_t *get_iob(int fd)
 {
-	if ( ((unsigned int)fd >= (sizeof(file_table) / sizeof(file_table[0]))) || (!file_table[fd].device) )
+	if ( (fd < 0) || (fd >= (int)(sizeof(file_table) / sizeof(file_table[0]))) || (!file_table[fd].device) )
 		return NULL;
 	return &file_table[fd];
 }
@@ -991,6 +1062,7 @@ static const char *parsefile(const char *path, iomanX_iop_device_t **p_device, i
 	if ( devname_len > (sizeof(canon) - 1) )
 		return NULL;
 	strncpy(canon, path_trimmed, devname_len);
+	canon[devname_len] = 0;
 	unit = 0;
 	// Search backward for the unit number.
 	while ( isnum(canon[devname_len - 1]) )
@@ -1011,13 +1083,6 @@ static const char *parsefile(const char *path, iomanX_iop_device_t **p_device, i
 }
 
 // Unofficial: unused "io request for unsupported operation" func removed
-
-#ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
-static int tty_noop(void)
-{
-	return 0;
-}
-#endif
 
 int iomanX_AddDrv(iomanX_iop_device_t *device)
 {

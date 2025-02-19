@@ -32,7 +32,6 @@ extern int dvrav_df_exit(iomanX_iop_device_t *dev);
 extern int dvrav_df_ioctl(iomanX_iop_file_t *f, int cmd, void *param);
 extern int dvrav_df_devctl(iomanX_iop_file_t *a1, const char *name, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 extern int dvrav_df_ioctl2(iomanX_iop_file_t *f, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
-extern s64 dvrav_df_null_long();
 extern int avioctl2_select_position(iomanX_iop_file_t *a1, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 extern int avioctl2_get_position(iomanX_iop_file_t *a1, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 extern int avioctl2_position_up(iomanX_iop_file_t *a1, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
@@ -108,35 +107,37 @@ struct DevctlCmdTbl_t
         {0x5623, &avioctl2_set_acs_position_euro},
 };
 
+IOMANX_RETURN_VALUE_IMPL(EUNSUP);
+
 static iomanX_iop_device_ops_t DvrFuncTbl =
     {
-        &dvrav_df_init,
-        &dvrav_df_exit,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        &dvrav_df_ioctl,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        (void *)&dvrav_df_null_long,
-        &dvrav_df_devctl,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        &dvrav_df_ioctl2,
+        &dvrav_df_init, // init
+        &dvrav_df_exit, // deinit
+        IOMANX_RETURN_VALUE(EUNSUP), // format
+        IOMANX_RETURN_VALUE(EUNSUP), // open
+        IOMANX_RETURN_VALUE(EUNSUP), // close
+        IOMANX_RETURN_VALUE(EUNSUP), // read
+        IOMANX_RETURN_VALUE(EUNSUP), // write
+        IOMANX_RETURN_VALUE(EUNSUP), // lseek
+        &dvrav_df_ioctl, // ioctl
+        IOMANX_RETURN_VALUE(EUNSUP), // remove
+        IOMANX_RETURN_VALUE(EUNSUP), // mkdir
+        IOMANX_RETURN_VALUE(EUNSUP), // rmdir
+        IOMANX_RETURN_VALUE(EUNSUP), // dopen
+        IOMANX_RETURN_VALUE(EUNSUP), // dclose
+        IOMANX_RETURN_VALUE(EUNSUP), // dread
+        IOMANX_RETURN_VALUE(EUNSUP), // getstat
+        IOMANX_RETURN_VALUE(EUNSUP), // chstat
+        IOMANX_RETURN_VALUE(EUNSUP), // rename
+        IOMANX_RETURN_VALUE(EUNSUP), // chdir
+        IOMANX_RETURN_VALUE(EUNSUP), // sync
+        IOMANX_RETURN_VALUE(EUNSUP), // mount
+        IOMANX_RETURN_VALUE(EUNSUP), // umount
+        IOMANX_RETURN_VALUE_S64(EUNSUP), // lseek64
+        &dvrav_df_devctl, // devctl
+        IOMANX_RETURN_VALUE(EUNSUP), // symlink
+        IOMANX_RETURN_VALUE(EUNSUP), // readlink
+        &dvrav_df_ioctl2, // ioctl2
     };
 static iomanX_iop_device_t DVRAV = {
     .name = "dvr_av",
@@ -281,11 +282,6 @@ int dvrav_df_ioctl2(iomanX_iop_file_t *f, int cmd, void *arg, unsigned int argle
     WaitSema(sema_id);
     SignalSema(sema_id);
     return -EINVAL;
-}
-
-s64 dvrav_df_null_long()
-{
-    return -134LL;
 }
 
 int avioctl2_get_tun_offset(

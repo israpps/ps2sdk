@@ -33,7 +33,6 @@ extern int dvr_df_exit(iomanX_iop_device_t *dev);
 extern int dvr_df_ioctl(iomanX_iop_file_t *f, int cmd, void *param);
 extern int dvr_df_devctl(iomanX_iop_file_t *a1, const char *name, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 extern int dvr_df_ioctl2(iomanX_iop_file_t *f, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
-extern s64 dvr_df_null_long();
 extern int dvrioctl2_rec_start(iomanX_iop_file_t *a1, const char *name, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 extern int dvrioctl2_rec_pause(iomanX_iop_file_t *a1, const char *name, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
 extern int dvrioctl2_rec_stop(iomanX_iop_file_t *a1, const char *name, int cmd, void *arg, unsigned int arglen, void *buf, unsigned int buflen);
@@ -109,35 +108,37 @@ struct DevctlCmdTbl_t
         {0x5650, &dvrioctl2_rec_pictclip},
 };
 
+IOMANX_RETURN_VALUE_IMPL(EUNSUP);
+
 static iomanX_iop_device_ops_t DvrFuncTbl =
     {
-        &dvr_df_init,
-        &dvr_df_exit,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        &dvr_df_ioctl,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        (void *)&dvr_df_null_long,
-        &dvr_df_devctl,
-        NOT_SUPPORTED,
-        NOT_SUPPORTED,
-        &dvr_df_ioctl2,
+        &dvr_df_init, // init
+        &dvr_df_exit, // deinit
+        IOMANX_RETURN_VALUE(EUNSUP), // format
+        IOMANX_RETURN_VALUE(EUNSUP), // open
+        IOMANX_RETURN_VALUE(EUNSUP), // close
+        IOMANX_RETURN_VALUE(EUNSUP), // read
+        IOMANX_RETURN_VALUE(EUNSUP), // write
+        IOMANX_RETURN_VALUE(EUNSUP), // lseek
+        &dvr_df_ioctl, // ioctl
+        IOMANX_RETURN_VALUE(EUNSUP), // remove
+        IOMANX_RETURN_VALUE(EUNSUP), // mkdir
+        IOMANX_RETURN_VALUE(EUNSUP), // rmdir
+        IOMANX_RETURN_VALUE(EUNSUP), // dopen
+        IOMANX_RETURN_VALUE(EUNSUP), // dclose
+        IOMANX_RETURN_VALUE(EUNSUP), // dread
+        IOMANX_RETURN_VALUE(EUNSUP), // getstat
+        IOMANX_RETURN_VALUE(EUNSUP), // chstat
+        IOMANX_RETURN_VALUE(EUNSUP), // rename
+        IOMANX_RETURN_VALUE(EUNSUP), // chdir
+        IOMANX_RETURN_VALUE(EUNSUP), // sync
+        IOMANX_RETURN_VALUE(EUNSUP), // mount
+        IOMANX_RETURN_VALUE(EUNSUP), // umount
+        IOMANX_RETURN_VALUE_S64(EUNSUP), // lseek64
+        &dvr_df_devctl, // devctl
+        IOMANX_RETURN_VALUE(EUNSUP), // symlink
+        IOMANX_RETURN_VALUE(EUNSUP), // readlink
+        &dvr_df_ioctl2, // ioctl2
     };
 char TEVENT_BUF[6144];
 char *tevent_p;
@@ -283,11 +284,6 @@ int dvr_df_ioctl2(iomanX_iop_file_t *f, int cmd, void *arg, unsigned int arglen,
     WaitSema(sema_id);
     SignalSema(sema_id);
     return -EINVAL;
-}
-
-s64 dvr_df_null_long()
-{
-    return -134LL;
 }
 
 int dvrioctl2_rec_start(

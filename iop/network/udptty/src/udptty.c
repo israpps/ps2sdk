@@ -42,25 +42,27 @@ static int tty_deinit(iop_device_t *device);
 static int tty_stdout_fd(void);
 static int tty_write(iop_file_t *file, void *buf, size_t size);
 
+IOMAN_RETURN_VALUE_IMPL(EIO);
+
 /* device ops */
 static iop_device_ops_t tty_ops = {
-    tty_init,
-    tty_deinit,
-    NOT_SUPPORTED,
-    (void *)tty_stdout_fd,
-    (void *)tty_stdout_fd,
-    NOT_SUPPORTED,
-    (void *)tty_write,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
+    &tty_init, // init
+    &tty_deinit, // deinit
+    IOMAN_RETURN_VALUE(EIO), // format
+    (void *)&tty_stdout_fd, // open
+    (void *)&tty_stdout_fd, // close
+    IOMAN_RETURN_VALUE(EIO), // read
+    (void *)&tty_write, // write
+    IOMAN_RETURN_VALUE(EIO), // lseek
+    IOMAN_RETURN_VALUE(EIO), // ioctl
+    IOMAN_RETURN_VALUE(EIO), // remove
+    IOMAN_RETURN_VALUE(EIO), // mkdir
+    IOMAN_RETURN_VALUE(EIO), // rmdir
+    IOMAN_RETURN_VALUE(EIO), // dopen
+    IOMAN_RETURN_VALUE(EIO), // dclose
+    IOMAN_RETURN_VALUE(EIO), // dread
+    IOMAN_RETURN_VALUE(EIO), // getstat
+    IOMAN_RETURN_VALUE(EIO), // chstat
 };
 
 /* device descriptor */

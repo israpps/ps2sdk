@@ -38,6 +38,7 @@
 #include <errno.h>
 #include <ioman_mod.h>
 #include <sysmem.h>
+#include <ioman.h>
 
 #include "ps2ip.h"
 
@@ -348,24 +349,6 @@ const char *resolveAddress( struct sockaddr_in *server, const char * url, char *
 }
 
 /**
- * Any calls we don't implement calls dummy.
- */
-int httpDummy()
-{
-	M_PRINTF("dummy function called\n");
-	return -EIO;
-}
-
-int httpInitialize(iop_io_device_t *driver)
-{
-	(void)driver;
-
-	M_PRINTF("filesystem driver initialized\n");
-
-	return 0;
-}
-
-/**
  * Open has the most work to do in the file driver.  It must:
  *
  *  1. Find a free file Handle.
@@ -498,25 +481,27 @@ int httpLseek(iop_io_file_t *f, int offset, int mode)
 	return privData->filePos;
 }
 
+IOMAN_RETURN_VALUE_IMPL(0);
+IOMAN_RETURN_VALUE_IMPL(EIO);
 
 static iop_io_device_ops_t ps2httpOps = {
-	&httpInitialize,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
-	&httpOpen,
-	&httpClose,
-	&httpRead,
-	(void *)&httpDummy,
-	&httpLseek,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
-	(void *)&httpDummy,
+	IOMAN_RETURN_VALUE(0), // init
+	IOMAN_RETURN_VALUE(0), // deinit
+	IOMAN_RETURN_VALUE(EIO), // format
+	&httpOpen, // open
+	&httpClose, // close
+	&httpRead, // read
+	IOMAN_RETURN_VALUE(EIO), // write
+	&httpLseek, // lseek
+	IOMAN_RETURN_VALUE(EIO), // ioctl
+	IOMAN_RETURN_VALUE(EIO), // remove
+	IOMAN_RETURN_VALUE(EIO), // mkdir
+	IOMAN_RETURN_VALUE(EIO), // rmdir
+	IOMAN_RETURN_VALUE(EIO), // dopen
+	IOMAN_RETURN_VALUE(EIO), // dclose
+	IOMAN_RETURN_VALUE(EIO), // dread
+	IOMAN_RETURN_VALUE(EIO), // getstat
+	IOMAN_RETURN_VALUE(EIO), // chstat
 };
 
 static iop_io_device_t ps2httpDev = {

@@ -325,26 +325,6 @@ devfs_device_t *devfs_find_deviceid(HDEV hDev)
    return NULL;
 }
 
-/** ioman init handler
- * @returns Always returns 0
- */
-int devfs_init(iop_device_t *dev)
-
-{
-   printf("devfs_init dev=%p\n", dev);
-   return 0;
-}
-
-/** ioman deinit handler
- * @returns Always returns 0
- */
-int devfs_deinit(iop_device_t *dev)
-
-{
-   printf("devfs_deinit dev=%p\n", dev);
-   return 0;
-}
-
 /** ioman open handler
  * @oaram file: Pointer to the ioman file structure
  * @param name: Name of file to open
@@ -999,34 +979,37 @@ int devfs_getstat(iop_file_t *file, const char *name, iox_stat_t *stat)
    return 0;
 }
 
+IOMANX_RETURN_VALUE_IMPL(0);
+IOMANX_RETURN_VALUE_IMPL(EPERM);
+ 
 static iop_device_ops_t devfs_ops = {
-  &devfs_init,
-  &devfs_deinit,
-  NOT_SUPPORTED,
-  &devfs_open,
-  &devfs_close,
-  &devfs_read,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  &devfs_ioctl,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  &devfs_dopen,
-  &devfs_dclose,
-  &devfs_dread,
-  &devfs_getstat,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  &devfs_ioctl2,
+  IOMANX_RETURN_VALUE(0), // init
+  IOMANX_RETURN_VALUE(0), // deinit
+  IOMANX_RETURN_VALUE(EPERM), // format
+  &devfs_open, // open
+  &devfs_close, // close
+  &devfs_read, // read
+  IOMANX_RETURN_VALUE(EPERM), // write
+  IOMANX_RETURN_VALUE(EPERM), // lseek
+  &devfs_ioctl, // ioctl
+  IOMANX_RETURN_VALUE(EPERM), // remove
+  IOMANX_RETURN_VALUE(EPERM), // mkdir
+  IOMANX_RETURN_VALUE(EPERM), // rmdir
+  &devfs_dopen, // dopen
+  &devfs_dclose, // dclose
+  &devfs_dread, // dread
+  &devfs_getstat, // getstat
+  IOMANX_RETURN_VALUE(EPERM), // chstat
+  IOMANX_RETURN_VALUE(EPERM), // rename
+  IOMANX_RETURN_VALUE(EPERM), // chdir
+  IOMANX_RETURN_VALUE(EPERM), // sync
+  IOMANX_RETURN_VALUE(EPERM), // mount
+  IOMANX_RETURN_VALUE(EPERM), // umount
+  IOMANX_RETURN_VALUE_S64(EPERM), // lseek64
+  IOMANX_RETURN_VALUE(EPERM), // devctl
+  IOMANX_RETURN_VALUE(EPERM), // symlink
+  IOMANX_RETURN_VALUE(EPERM), // readlink
+  &devfs_ioctl2, // ioctl2
 };
 
 static iop_device_t devfs_device = {

@@ -10,7 +10,17 @@ IOP_BIN_ALTNAMES ?= freepad.irx
 
 # IOP_CFLAGS += -DDEBUG
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/system/sio2man/include
+IOP_INCS += \
+	-I$(PS2SDKSRC)/iop/system/intrman/include \
+	-I$(PS2SDKSRC)/iop/system/loadcore/include \
+	-I$(PS2SDKSRC)/iop/system/sifcmd/include \
+	-I$(PS2SDKSRC)/iop/system/sifman/include \
+	-I$(PS2SDKSRC)/iop/system/sio2man/include \
+	-I$(PS2SDKSRC)/iop/system/stdio/include \
+	-I$(PS2SDKSRC)/iop/system/sysclib/include \
+	-I$(PS2SDKSRC)/iop/system/sysmem/include \
+	-I$(PS2SDKSRC)/iop/system/threadman/include \
+	-I$(PS2SDKSRC)/iop/system/vblank/include
 
 IOP_OBJS = freepad.o rpcserver.o exports.o imports.o padInit.o padPortOpen.o padMiscFuncs.o sio2Cmds.o padData.o padCmds.o
 
@@ -26,7 +36,6 @@ endif
 
 ifneq (x$(PADMAN_BUILDING_XPADMAN_V2),x0)
 IOP_CFLAGS += -DBUILDING_XPADMAN_V2
-IOP_INCS += -I$(PS2SDKSRC)/iop/system/rsio2man/include
 endif
 
 include $(PS2SDKSRC)/Defs.make

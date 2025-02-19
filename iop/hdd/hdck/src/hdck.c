@@ -17,7 +17,6 @@
 #include <irx.h>
 #include <hdd-ioctl.h>
 
-#include "apa-opt.h"
 #include "libapa.h"
 
 #include "misc_hdck.h"
@@ -33,34 +32,38 @@ static int HdckDevctl(iomanX_iop_file_t *fd, const char *name, int cmd, void *ar
 static u8 IOBuffer[128 * 512];
 static u8 IOBuffer2[128 * 512];
 
+IOMANX_RETURN_VALUE_IMPL(0);
+IOMANX_RETURN_VALUE_IMPL(EPERM);
+
 static iomanX_iop_device_ops_t HdckDeviceOps = {
-    &HdckInit,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    &HdckDevctl,
-    NULL,
-    NULL,
-    NULL};
+    &HdckInit, // init
+    IOMANX_RETURN_VALUE(0), // deinit
+    IOMANX_RETURN_VALUE(EPERM), // format
+    IOMANX_RETURN_VALUE(EPERM), // open
+    IOMANX_RETURN_VALUE(EPERM), // close
+    IOMANX_RETURN_VALUE(EPERM), // read
+    IOMANX_RETURN_VALUE(EPERM), // write
+    IOMANX_RETURN_VALUE(EPERM), // lseek
+    IOMANX_RETURN_VALUE(EPERM), // ioctl
+    IOMANX_RETURN_VALUE(EPERM), // remove
+    IOMANX_RETURN_VALUE(EPERM), // mkdir
+    IOMANX_RETURN_VALUE(EPERM), // rmdir
+    IOMANX_RETURN_VALUE(EPERM), // dopen
+    IOMANX_RETURN_VALUE(EPERM), // dclose
+    IOMANX_RETURN_VALUE(EPERM), // dread
+    IOMANX_RETURN_VALUE(EPERM), // getstat
+    IOMANX_RETURN_VALUE(EPERM), // chstat
+    IOMANX_RETURN_VALUE(EPERM), // rename
+    IOMANX_RETURN_VALUE(EPERM), // chdir
+    IOMANX_RETURN_VALUE(EPERM), // sync
+    IOMANX_RETURN_VALUE(EPERM), // mount
+    IOMANX_RETURN_VALUE(EPERM), // umount
+    IOMANX_RETURN_VALUE_S64(EPERM), // lseek64
+    &HdckDevctl, // devctl
+    IOMANX_RETURN_VALUE(EPERM), // symlink
+    IOMANX_RETURN_VALUE(EPERM), // readlink
+    IOMANX_RETURN_VALUE(EPERM), // ioctl2
+};
 
 static iomanX_iop_device_t HdckDevice = {
     "hdck",

@@ -44,33 +44,6 @@ static int ttyfs_deinit()
 	return 0;
 }
 
-static int ttyfs_open(iop_file_t *file, const char *name, int flags)
-{
-    (void)file;
-    (void)name;
-    (void)flags;
-
-    DPRINTF("FS Open()\n");
-	return 0;
-}
-
-static int ttyfs_dopen(iop_file_t *file, const char *name)
-{
-    (void)file;
-    (void)name;
-
-    DPRINTF("FS Dopen()\n");
-    return 0;
-}
-
-static int ttyfs_close(iop_file_t *file)
-{
-    (void)file;
-
-    DPRINTF("FS Close()\n");
-    return(0);
-}
-
 static int ttyfs_write(iop_file_t *file, void *ptr, int size) {
     char temp[65];
     int bCount = 0;
@@ -99,25 +72,28 @@ static int ttyfs_write(iop_file_t *file, void *ptr, int size) {
     return(bCount);
 }
 
+IOMAN_RETURN_VALUE_IMPL(0);
+IOMAN_RETURN_VALUE_IMPL(EPERM);
+
 static iop_device_ops_t fsd_ops =
 {
-    &ttyfs_init,
-    &ttyfs_deinit,
-    NOT_SUPPORTED,
-    &ttyfs_open,
-    &ttyfs_close,
-	NOT_SUPPORTED,
-    &ttyfs_write,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-	&ttyfs_dopen,
-    &ttyfs_close,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
-    NOT_SUPPORTED,
+    &ttyfs_init, // init
+    &ttyfs_deinit, // deinit
+    IOMAN_RETURN_VALUE(EPERM), // format
+    IOMAN_RETURN_VALUE(0), // open
+    IOMAN_RETURN_VALUE(0), // close
+    IOMAN_RETURN_VALUE(EPERM), // read
+    &ttyfs_write, // write
+    IOMAN_RETURN_VALUE(EPERM), // lseek
+    IOMAN_RETURN_VALUE(EPERM), // ioctl
+    IOMAN_RETURN_VALUE(EPERM), // remove
+    IOMAN_RETURN_VALUE(EPERM), // mkdir
+    IOMAN_RETURN_VALUE(EPERM), // rmdir
+    IOMAN_RETURN_VALUE(0), // dopen
+    IOMAN_RETURN_VALUE(0), // dclose
+    IOMAN_RETURN_VALUE(EPERM), // dread
+    IOMAN_RETURN_VALUE(EPERM), // getstat
+    IOMAN_RETURN_VALUE(EPERM), // chstat
 };
 
 static iop_device_t tty_fsd =

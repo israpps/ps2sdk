@@ -974,10 +974,10 @@ void ps2kbd_ioctl_setblockmode(u32 blockmode)
 }
 
 void ps2kbd_ioctl_setrepeatrate(u32 rate)
+
 {
   kbd_repeatrate = rate;
 }
-
 
 int fio_init(iop_device_t *driver)
 {
@@ -1110,26 +1110,30 @@ int fio_close(iop_file_t *f)
   return 0;
 }
 
+IOMAN_RETURN_VALUE_IMPL(0);
+IOMAN_RETURN_VALUE_IMPL(EIO);
+
 static iop_device_ops_t fio_ops =
-{
-  &fio_init,
-  NOT_SUPPORTED,
-  &fio_format,
-  &fio_open,
-  &fio_close,
-  &fio_read,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  &fio_ioctl,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-  NOT_SUPPORTED,
-};
+
+  {
+  &fio_init, // init
+  IOMAN_RETURN_VALUE(0), // deinit
+  &fio_format, // format
+  &fio_open, // open
+  &fio_close, // close
+  &fio_read, // read
+  IOMAN_RETURN_VALUE(EIO), // write
+  IOMAN_RETURN_VALUE(EIO), // lseek
+  &fio_ioctl, // ioctl
+  IOMAN_RETURN_VALUE(EIO), // remove
+  IOMAN_RETURN_VALUE(EIO), // mkdir
+  IOMAN_RETURN_VALUE(EIO), // rmdir
+  IOMAN_RETURN_VALUE(EIO), // dopen
+  IOMAN_RETURN_VALUE(EIO), // dclose
+  IOMAN_RETURN_VALUE(EIO), // dread
+  IOMAN_RETURN_VALUE(EIO), // getstat
+  IOMAN_RETURN_VALUE(EIO), // chstat
+  };
 
 static iop_device_t kbd_filedrv = {
   PS2KBD_FSNAME,
