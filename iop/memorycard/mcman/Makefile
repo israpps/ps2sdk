@@ -6,9 +6,31 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
+# Build the newer version of the memory card module?
+MCMAN_BUILDING_XMCMAN ?= 1
+
+# Read from the dev9 external flash ROM instead of the memory card?
+MCMAN_BUILDING_XFROMMAN ?= 0
+
+# Read from a file on the filesystem insead of the memory card?
+MCMAN_BUILDING_VMCMAN ?= 0
+
 # IOP_CFLAGS += -DSIO_DEBUG -DDEBUG
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/system/sio2man/include
+IOP_IMPORT_INCS += \
+    cdvd/cdvdman \
+    debug/sior \
+    security/secrman \
+    system/intrman \
+    system/ioman \
+    system/iomanx \
+    system/loadcore \
+    system/modload \
+    system/sio2man \
+    system/stdio \
+    system/sysclib \
+    system/threadman \
+    system/timrman
 
 IOP_OBJS = \
     main.o \
@@ -20,22 +42,13 @@ IOP_OBJS = \
     imports.o \
     exports.o
 
-# Build the newer version of the memory card module?
-MCMAN_BUILDING_XMCMAN ?= 1
-
-# Read from the dev9 external flash ROM instead of the memory card?
-MCMAN_BUILDING_XFROMMAN ?= 0
-
-# Read from a file on the filesystem insead of the memory card?
-MCMAN_BUILDING_VMCMAN ?= 0
-
 ifneq (x$(MCMAN_BUILDING_XMCMAN),x0)
 IOP_CFLAGS += -DBUILDING_XMCMAN
 endif
 
 ifneq (x$(MCMAN_BUILDING_XFROMMAN),x0)
 IOP_CFLAGS += -DBUILDING_XFROMMAN
-IOP_INCS += -I$(PS2SDKSRC)/iop/dev9/extflash/include
+IOP_IMPORT_INCS += dev9/extflash
 endif
 
 ifneq (x$(MCMAN_BUILDING_VMCMAN),x0)

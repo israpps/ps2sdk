@@ -8,6 +8,12 @@
 
 IOP_BIN ?= vblank.irx
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/loadcore \
+	system/sysclib \
+	system/threadman
+
 IOP_OBJS = vblank.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

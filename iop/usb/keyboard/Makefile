@@ -8,7 +8,17 @@
 
 IOP_BIN ?= ps2kbd.irx
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/usb/usbd/include
+IOP_IMPORT_INCS += \
+	system/dmacman \
+	system/intrman \
+	system/ioman \
+	system/loadcore \
+	system/sifcmd \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman \
+	usb/usbd
 
 IOP_OBJS = ps2kbd.o imports.o
 

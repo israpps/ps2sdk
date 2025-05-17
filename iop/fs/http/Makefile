@@ -8,7 +8,19 @@
 
 IOP_BIN ?= ps2http.irx
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/tcpip/tcpip/include -I$(PS2SDKSRC)/iop/tcpip/dns/include
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/ioman \
+	system/iomanx \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman \
+	tcpip/dns \
+	tcpip/tcpip
 
 IOP_OBJS = ps2http.o imports.o
 

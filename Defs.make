@@ -24,12 +24,13 @@ EE_OBJCOPY ?= $(EE_TOOL_PREFIX)objcopy
 EE_STRIP ?= $(EE_TOOL_PREFIX)strip
 EE_ADDR2LINE ?= $(EE_TOOL_PREFIX)addr2line
 EE_RANLIB ?= $(EE_TOOL_PREFIX)ranlib
+EE_PKG_CONFIG ?= $(EE_TOOL_PREFIX)pkg-config
 
 #
 # Defintions for the IOP toolchain.
 #
 
-IOP_TOOL_PREFIX ?= mipsel-ps2-irx-
+IOP_TOOL_PREFIX ?= mipsel-none-elf-
 IOP_CC ?= $(IOP_TOOL_PREFIX)gcc
 IOP_AS ?= $(IOP_TOOL_PREFIX)as
 IOP_LD ?= $(IOP_TOOL_PREFIX)ld

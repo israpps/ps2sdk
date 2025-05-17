@@ -8,6 +8,16 @@
 
 IOP_CFLAGS += -mno-check-zero-division
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
 IOP_OBJS = netman.o rpc_server.o rpc_client.o imports.o exports.o
 
 include $(PS2SDKSRC)/Defs.make

@@ -6,7 +6,17 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/system/sio2man/include/ -I$(PS2SDKSRC)/iop/system/rsio2man/include/
+IOP_IMPORT_INCS += \
+	cdvd/cdvdman \
+	system/intrman \
+	system/iomanx \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/sio2man \
+	system/stdio \
+	system/threadman \
+	system/vblank
 
 IOP_OBJS = rmman.o exports.o imports.o
 

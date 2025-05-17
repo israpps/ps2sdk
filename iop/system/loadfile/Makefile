@@ -8,6 +8,18 @@
 
 IOP_BIN ?= loadfile.irx
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/ioman \
+	system/loadcore \
+	system/modload \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
 IOP_OBJS = loadfile.o eeelfloader.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

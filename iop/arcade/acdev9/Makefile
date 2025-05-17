@@ -6,8 +6,10 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_INCS += \
-	-I$(PS2SDKSRC)/iop/dev9/dev9/include
+IOP_IMPORT_INCS += \
+	dev9/dev9 \
+	system/loadcore \
+	system/stdio
 
 IOP_OBJS = \
 	acdev9.o \

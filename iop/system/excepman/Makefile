@@ -8,6 +8,10 @@
 
 IOP_BIN ?= excepman.irx
 
+IOP_IMPORT_INCS += \
+	system/loadcore \
+	system/sysmem
+
 IOP_OBJS = excepman.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

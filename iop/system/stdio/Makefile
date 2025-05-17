@@ -8,6 +8,11 @@
 
 IOP_BIN ?= stdio.irx
 
+IOP_IMPORT_INCS += \
+	system/ioman \
+	system/loadcore \
+	system/sysclib
+
 IOP_OBJS = stdio.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

@@ -8,6 +8,10 @@
 
 IOP_BIN ?= sifman.irx
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/loadcore
+
 IOP_OBJS = sifman.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

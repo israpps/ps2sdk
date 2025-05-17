@@ -6,8 +6,11 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_INCS += \
-	-I$(PS2SDKSRC)/iop/arcade/accore/include
+IOP_IMPORT_INCS += \
+	arcade/accore \
+	system/ioman \
+	system/stdio \
+	system/sysclib
 
 IOP_OBJS = \
 	jvld.o \

@@ -7,6 +7,20 @@
 # Review ps2sdk README & LICENSE files for further details.
 
 IOP_CFLAGS += -DBUILDING_CDVD_MODULE
+
+IOP_IMPORT_INCS += \
+	cdvd/cdvdman \
+	system/dmacman \
+	system/intrman \
+	system/iomanx \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
 IOP_OBJS = cdvdfsv.o imports.o exports.o
 
 include $(PS2SDKSRC)/Defs.make

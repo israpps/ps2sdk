@@ -8,6 +8,16 @@
 
 IOP_BIN ?= fileio.irx
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/ioman \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/sysmem \
+	system/threadman
+
 IOP_OBJS = fileio.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

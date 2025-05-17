@@ -8,6 +8,10 @@
 
 IOP_BIN ?= heaplib.irx
 
+IOP_IMPORT_INCS += \
+	system/loadcore \
+	system/sysmem
+
 IOP_OBJS = heaplib.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

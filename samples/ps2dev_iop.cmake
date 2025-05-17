@@ -7,7 +7,7 @@
 # Copyright (C) 2024-Present PS2DEV Team
 #
 
-cmake_minimum_required(VERSION 3.0)
+cmake_minimum_required(VERSION 3.0...3.12)
 
 INCLUDE(CMakeForceCompiler)
 if(DEFINED ENV{PS2SDK})
@@ -25,8 +25,8 @@ endif()
 SET(CMAKE_SYSTEM_NAME Generic)
 SET(CMAKE_SYSTEM_VERSION 1)
 SET(CMAKE_SYSTEM_PROCESSOR mips)
-SET(CMAKE_C_COMPILER mipsel-ps2-irx-gcc)
-SET(CMAKE_CXX_COMPILER mipsel-ps2-irx-g++)
+SET(CMAKE_C_COMPILER mipsel-none-elf-gcc)
+SET(CMAKE_CXX_COMPILER mipsel-none-elf-g++)
 SET(CMAKE_C_COMPILER_WORKS 1) #Hack by f0bes
 SET(CMAKE_CXX_COMPILER_WORKS 1) #Hack by f0bes
 

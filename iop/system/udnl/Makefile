@@ -6,6 +6,16 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
+IOP_IMPORT_INCS += \
+	system/dmacman \
+	system/intrman \
+	system/ioman \
+	system/loadcore \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
 IOP_OBJS = udnl.o udnl_asm.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

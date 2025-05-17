@@ -9,6 +9,14 @@
 # IOP_CFLAGS += -DTEST_TRAP
 IOP_CFLAGS += -DIOPTRAP_PRINT_MODULE_NAME
 
+IOP_IMPORT_INCS += \
+	system/excepman \
+	system/loadcore \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/threadman
+
 IOP_OBJS = ioptrap.o handler.o breakpoint.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

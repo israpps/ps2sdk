@@ -6,10 +6,14 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_BIN ?= intrman.irx
-
 # Enable compatibility with PS1 mode?
 INTRMAN_PS1 ?= 0
+
+IOP_BIN ?= intrman.irx
+
+IOP_IMPORT_INCS += \
+	system/excepman \
+	system/loadcore
 
 IOP_OBJS = intrman.o exports.o imports.o
 

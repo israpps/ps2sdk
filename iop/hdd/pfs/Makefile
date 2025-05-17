@@ -12,9 +12,21 @@ LIBPFS_SRC_DIR = $(LIBPFS_PATH)src/
 
 IOP_BIN ?= ps2fs.irx
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/dev9/atad/include -I$(PS2SDKSRC)/iop/dev9/poweroff/include -I$(LIBPFS_PATH)include
-
 IOP_CFLAGS += -DIOMANX_OLD_NAME_COMPATIBILITY=0 -DIOMANX_OLD_NAME_ADDDELDRV=0
+
+IOP_IMPORT_INCS += \
+	cdvd/cdvdman \
+	dev9/atad \
+	dev9/poweroff \
+	system/intrman \
+	system/iomanx \
+	system/loadcore \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
+IOP_INCS += -I$(LIBPFS_PATH)include
 
 IOP_LIBS += -lgcc
 

@@ -8,7 +8,13 @@
 
 IOP_BIN ?= hdproatad.irx
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/dev9/atad/include
+IOP_IMPORT_INCS += \
+	dev9/atad \
+	system/intrman \
+	system/loadcore \
+	system/stdio \
+	system/sysclib \
+	system/threadman
 
 IOP_OBJS = hdproatad.o exports.o imports.o
 

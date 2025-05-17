@@ -8,6 +8,11 @@
 
 IOP_BIN ?= dmacman.irx
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/loadcore \
+	system/sysmem
+
 IOP_OBJS = dmacman.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

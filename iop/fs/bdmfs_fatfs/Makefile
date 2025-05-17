@@ -19,13 +19,25 @@ ifeq ($(DEBUG_EXTREME),1)
 	IOP_CFLAGS += -DDEBUG_EXTREME
 endif
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/fs/bdm/include -I$(FATFS)/source/include
+IOP_IMPORT_INCS += \
+	cdvd/cdvdman \
+	fs/bdm \
+	system/intrman \
+	system/ioman \
+	system/iomanx \
+	system/loadcore \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
 
-FATFS_OBJS = diskio.o ff.o ffsystem.o ffunicode.o 
+IOP_INCS += -I$(FATFS)/source/include
+
+IOP_LIBS += -lgcc
+
+FATFS_OBJS = diskio.o ff.o ffsystem.o ffunicode.o
 
 IOP_OBJS = main.o imports.o fs_driver.o $(FATFS_OBJS)
-IOP_LIBS = -static-libgcc -lgcc
-
 
 include $(PS2SDKSRC)/Defs.make
 include $(PS2SDKSRC)/iop/Rules.bin.make

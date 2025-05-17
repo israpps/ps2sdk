@@ -6,10 +6,16 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_OBJS = romdrv.o imports.o exports.o
-
 # Enable the romGetDevice function?
 ROMDRV_EXPORT_DEVICES ?= 1
+
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/ioman \
+	system/loadcore \
+	system/sysclib
+
+IOP_OBJS = romdrv.o imports.o exports.o
 
 ifneq (x$(ROMDRV_EXPORT_DEVICES),x0)
 IOP_CFLAGS += -DROMDRV_EXPORT_DEVICES

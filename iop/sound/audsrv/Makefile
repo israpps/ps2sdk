@@ -6,6 +6,17 @@
 # Licenced under GNU Library General Public License version 2
 # Review ps2sdk README & LICENSE files for further details.
 
+IOP_IMPORT_INCS += \
+	cdvd/cdvdman \
+	sound/libsd \
+	system/intrman \
+	system/loadcore \
+	system/sifcmd \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
 IOP_OBJS = audsrv.o upsamplers.o hw.o rpc_server.o rpc_client.o common.o cdrom.o imports.o exports.o adpcm.o
 
 include $(PS2SDKSRC)/Defs.make

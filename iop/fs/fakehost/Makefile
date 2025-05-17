@@ -8,6 +8,18 @@
 
 IOP_CFLAGS += -DIOMANX_OLD_NAME_COMPATIBILITY=0 -DIOMANX_OLD_NAME_ADDDELDRV=0
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/ioman \
+	system/iomanx \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
 IOP_OBJS = fakehost.o nprintf.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

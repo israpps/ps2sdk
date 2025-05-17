@@ -8,6 +8,15 @@
 
 IOP_BIN ?= threadman.irx
 
+IOP_IMPORT_INCS += \
+	system/heaplib \
+	system/intrman \
+	system/loadcore \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/timrman
+
 IOP_OBJS = thcommon.o thbase.o thsemap.o thmsgbx.o thevent.o thfpool.o thvpool.o imports.o exports.o
 
 include $(PS2SDKSRC)/Defs.make

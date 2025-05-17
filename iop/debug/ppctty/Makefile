@@ -6,16 +6,25 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_INCS +=
+IOP_IMPORT_INCS += \
+	system/excepman \
+	system/intrman \
+	system/ioman \
+	system/loadcore \
+	system/modload \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
 
 IOP_OBJS = main.o tty.o imports.o
 
 ifeq ($(KPRINTF), 1)
-  IOP_CFLAGS += -DKPRINTF
+IOP_CFLAGS += -DKPRINTF
 endif
 
 ifeq ($(DEBUG), 1)
-  IOP_CFLAGS += -DDEBUG
+IOP_CFLAGS += -DDEBUG
 endif
 
 include $(PS2SDKSRC)/Defs.make

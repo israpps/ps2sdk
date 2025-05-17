@@ -8,6 +8,13 @@
 
 IOP_BIN ?= sifcmd.irx
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/loadcore \
+	system/sifman \
+	system/stdio \
+	system/threadman
+
 IOP_OBJS = sifcmd.o sifrpc.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

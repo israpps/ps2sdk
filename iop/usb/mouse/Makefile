@@ -8,7 +8,16 @@
 
 IOP_BIN ?= ps2mouse.irx
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/usb/usbd/include
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/iomanx \
+	system/loadcore \
+	system/sifcmd \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman \
+	usb/usbd
 
 IOP_OBJS = ps2mouse.o imports.o
 

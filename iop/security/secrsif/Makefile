@@ -6,7 +6,15 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/system/sio2man/include/
+IOP_IMPORT_INCS += \
+	security/secrman \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/sio2man \
+	system/stdio \
+	system/sysclib \
+	system/threadman
 
 IOP_OBJS = secrsif.o imports.o exports.o
 

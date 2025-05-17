@@ -8,6 +8,19 @@
 
 # IOP_CFLAGS += -DSIO_DEBUG -DDEBUG
 
+IOP_IMPORT_INCS += \
+	cdvd/cdvdman \
+	debug/sior \
+	system/intrman \
+	system/ioman \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
 IOP_OBJS = main.o cdfs_iop.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

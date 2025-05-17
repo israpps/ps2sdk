@@ -8,7 +8,15 @@
 
 IOP_BIN ?= ps2netfs.irx
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/system/iopmgr/include -I$(PS2SDKSRC)/iop/tcpip/tcpip/include
+IOP_IMPORT_INCS += \
+	system/ioman \
+	system/iomanx \
+	system/iopmgr \
+	system/loadcore \
+	system/stdio \
+	system/sysclib \
+	system/threadman \
+	tcpip/tcpip
 
 IOP_OBJS = ps2netfs.o ps2_fio.o devscan.o imports.o
 

@@ -12,7 +12,19 @@ VFAT_SRC_DIR = $(VFAT_PATH)/src/
 
 # IOP_CFLAGS += -DDEBUG -DDEBUG_EXTREME
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/fs/bdm/include -I$(VFAT_SRC_DIR)/include
+IOP_IMPORT_INCS += \
+	cdvd/cdvdman \
+	fs/bdm \
+	system/intrman \
+	system/ioman \
+	system/iomanx \
+	system/loadcore \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman
+
+IOP_INCS += -I$(VFAT_SRC_DIR)/include
 
 IOP_OBJS = fs_driver.o fat_driver.o fat_write.o scache.o main.o imports.o
 

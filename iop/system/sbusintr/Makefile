@@ -6,6 +6,11 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/loadcore \
+	system/sifman
+
 IOP_OBJS = sbusintr.o exports.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

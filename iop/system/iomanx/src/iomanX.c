@@ -52,10 +52,8 @@ extern struct irx_export_table _exp_ioman;
 #define MAX_FILES 32
 #endif
 
-#ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
 void iomanX_StdioInit(int mode);
 static int open_tty_handles(const char *tty_name);
-#endif
 static int xx_stat(int op, const char *name, iox_stat_t *stat, unsigned int statmask);
 static int xx_rename(int op, const char *oldname, const char *newname);
 static int xx_dir(int op, const char *name, int mode);
@@ -64,13 +62,9 @@ static iomanX_iop_file_t *new_iob(void);
 static iomanX_iop_file_t *get_iob(int fd);
 static iomanX_iop_device_t *lookup_dev(const char *name, int show_unkdev_msg);
 static const char *parsefile(const char *path, iomanX_iop_device_t **p_device, int *p_unit);
-#ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
-static int tty_noop(void);
-unsigned int iomanX_GetDevType(int fd);
-#endif
 static void ShowDrv(void);
-#ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
 static void register_tty(void);
+#ifdef _IOP
 static void register_dummytty(void);
 #endif
 
@@ -83,35 +77,37 @@ struct ioman_dev_listentry
 #endif
 
 static int showdrvflag = 1;
-#ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
+
+IOMANX_RETURN_VALUE_IMPL(0);
+
 static iomanX_iop_device_ops_t dev_tty_dev_operations = {
-	DUMMY_IMPLEMENTATION, // init
-	DUMMY_IMPLEMENTATION, // deinit
-	NOT_SUPPORTED, // format
-	NOT_SUPPORTED, // open
-	NOT_SUPPORTED, // close
-	NOT_SUPPORTED, // read
-	NOT_SUPPORTED, // write
-	NOT_SUPPORTED, // lseek
-	NOT_SUPPORTED, // ioctl
-	NOT_SUPPORTED, // remove
-	NOT_SUPPORTED, // mkdir
-	NOT_SUPPORTED, // rmdir
-	NOT_SUPPORTED, // dopen
-	NOT_SUPPORTED, // dclose
-	NOT_SUPPORTED, // dread
-	NOT_SUPPORTED, // getstat
-	NOT_SUPPORTED, // chstat
-	NOT_SUPPORTED, // rename
-	NOT_SUPPORTED, // chdir
-	NOT_SUPPORTED, // sync
-	NOT_SUPPORTED, // mount
-	NOT_SUPPORTED, // umount
-	NOT_SUPPORTED_S64, // lseek64
-	NOT_SUPPORTED, // devctl
-	NOT_SUPPORTED, // symlink
-	NOT_SUPPORTED, // readlink
-	NOT_SUPPORTED, // ioctl2
+	IOMANX_RETURN_VALUE(0), // init
+	IOMANX_RETURN_VALUE(0), // deinit
+	IOMANX_RETURN_VALUE(0), // format
+	IOMANX_RETURN_VALUE(0), // open
+	IOMANX_RETURN_VALUE(0), // close
+	IOMANX_RETURN_VALUE(0), // read
+	IOMANX_RETURN_VALUE(0), // write
+	IOMANX_RETURN_VALUE(0), // lseek
+	IOMANX_RETURN_VALUE(0), // ioctl
+	IOMANX_RETURN_VALUE(0), // remove
+	IOMANX_RETURN_VALUE(0), // mkdir
+	IOMANX_RETURN_VALUE(0), // rmdir
+	IOMANX_RETURN_VALUE(0), // dopen
+	IOMANX_RETURN_VALUE(0), // dclose
+	IOMANX_RETURN_VALUE(0), // dread
+	IOMANX_RETURN_VALUE(0), // getstat
+	IOMANX_RETURN_VALUE(0), // chstat
+	IOMANX_RETURN_VALUE(0), // rename
+	IOMANX_RETURN_VALUE(0), // chdir
+	IOMANX_RETURN_VALUE(0), // sync
+	IOMANX_RETURN_VALUE(0), // mount
+	IOMANX_RETURN_VALUE(0), // umount
+	IOMANX_RETURN_VALUE_S64(0), // lseek64
+	IOMANX_RETURN_VALUE(0), // devctl
+	IOMANX_RETURN_VALUE(0), // symlink
+	IOMANX_RETURN_VALUE(0), // readlink
+	IOMANX_RETURN_VALUE(0), // ioctl2
 };
 static iomanX_iop_device_t dev_tty = {
 	"tty",
@@ -120,6 +116,7 @@ static iomanX_iop_device_t dev_tty = {
 	"CONSOLE",
 	&dev_tty_dev_operations,
 };
+#ifdef _IOP
 static iomanX_iop_device_t dev_dummytty = {
 	"dummytty",
 	IOP_DT_CHAR,
@@ -375,7 +372,6 @@ iomanX_iop_file_t *get_file(int fd)
 }
 #endif
 
-#ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
 void iomanX_StdioInit(int mode)
 {
 #ifdef _IOP
@@ -429,7 +425,6 @@ static int open_tty_handles(const char *tty_name)
 		return -1;
 	return 0;
 }
-#endif
 
 int iomanX_open(const char *name, int flags, ...)
 {
@@ -1209,7 +1204,6 @@ int iomanX_DelDrv(const char *name)
 #endif
 }
 
-#ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
 unsigned int iomanX_GetDevType(int fd)
 {
 	iomanX_iop_file_t *f;
@@ -1219,7 +1213,6 @@ unsigned int iomanX_GetDevType(int fd)
 		return handle_result(-EBADF, f, 0);
 	return f->device->type;
 }
-#endif
 
 static void ShowDrv(void)
 {
@@ -1244,13 +1237,13 @@ static void ShowDrv(void)
 	showdrvflag = 0;
 }
 
-#ifndef IOMANX_ENABLE_LEGACY_IOMAN_HOOK
 static void register_tty(void)
 {
 	iomanX_DelDrv(dev_tty.name);
 	iomanX_AddDrv(&dev_tty);
 }
 
+#ifdef _IOP
 static void register_dummytty(void)
 {
 	iomanX_DelDrv(dev_dummytty.name);

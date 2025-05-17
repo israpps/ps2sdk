@@ -8,6 +8,15 @@
 
 IOP_BIN ?= reboot.irx
 
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/loadcore \
+	system/modload \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/threadman
+
 IOP_OBJS = reboot.o imports.o
 
 include $(PS2SDKSRC)/Defs.make

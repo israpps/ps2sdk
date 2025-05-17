@@ -6,7 +6,17 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/sound/libspu2/include
+IOP_IMPORT_INCS += \
+	sound/libspu2 \
+	system/intrman \
+	system/loadcore \
+	system/sifcmd \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/sysmem \
+	system/threadman \
+	system/vblank
 
 IOP_OBJS = \
 	imports.o \

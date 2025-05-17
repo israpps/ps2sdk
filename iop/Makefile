@@ -10,6 +10,7 @@ SUBDIRS = \
 	arcade \
 	cdvd \
 	debug \
+	deckard \
 	dev9 \
 	dvrp \
 	fs \

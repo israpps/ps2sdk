@@ -8,9 +8,18 @@
 
 # IOP_CFLAGS += -DDEBUG
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/tcpip/tcpip/include
+IOP_IMPORT_INCS += \
+	system/intrman \
+	system/ioman \
+	system/iomanx \
+	system/loadcore \
+	system/sifman \
+	system/stdio \
+	system/sysclib \
+	system/threadman \
+	tcpip/tcpip
 
-IOP_LDFLAGS += -lgcc
+IOP_LIBS += -lgcc
 
 IOP_OBJS = smbman.o smb_fio.o smb.o poll.o auth.o des.o md4.o imports.o
 

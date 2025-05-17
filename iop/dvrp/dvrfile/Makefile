@@ -6,8 +6,16 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-IOP_INCS += -I$(PS2SDKSRC)/iop/dev9/pvrdrv/include
 IOP_CFLAGS += -DIOMANX_OLD_NAME_COMPATIBILITY=0 -DIOMANX_OLD_NAME_ADDDELDRV=0
+
+IOP_IMPORT_INCS += \
+	dev9/pvrdrv \
+	system/iomanx \
+	system/loadcore \
+	system/stdio \
+	system/sysclib \
+	system/threadman
+
 IOP_OBJS = dvrfile.o imports.o
 
 include $(PS2SDKSRC)/Defs.make
