@@ -44,9 +44,37 @@ static const char *formatPartList[] = {
     "__net", "__system", "__sysconf", "__common", NULL};
 #endif
 
+#ifndef APA_8MB_PARTITION_SIZE
 #define APA_NUMBER_OF_SIZES 9
 static const char *sizeList[APA_NUMBER_OF_SIZES] = {
-    "128M", "256M", "512M", "1G", "2G", "4G", "8G", "16G", "32G"};
+    "128M",
+    "256M",
+    "512M",
+    "1G",
+    "2G",
+    "4G",
+    "8G",
+    "16G",
+    "32G",
+};
+#else
+#define APA_NUMBER_OF_SIZES 13
+static const char *sizeList[APA_NUMBER_OF_SIZES] = {
+    "8M",
+    "16M",
+    "32M",
+    "64M",
+    "128M",
+    "256M",
+    "512M",
+    "1G",
+    "2G",
+    "4G",
+    "8G",
+    "16G",
+    "32G",
+};
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////
 // Function declarations
@@ -66,7 +94,11 @@ static int fioPartitionSizeLookUp(char *str)
 
     for (i = 0; i < APA_NUMBER_OF_SIZES; i++) {
         if (strcmp(str, sizeList[i]) == 0)
-            return (256 * 1024) << i;
+#ifndef APA_8MB_PARTITION_SIZE
+            return (2 * 128 * 1024) << i; // 128MB
+#else
+            return (2 * 8 * 1024) << i; // 8MB
+#endif
     }
     APA_PRINTF(APA_DRV_NAME ": Error: Invalid partition size, %s.\n", str);
     return -EINVAL;
@@ -492,13 +524,13 @@ static int apaRemove(s32 device, const char *id, const char *fpwd)
 }
 
 // Unofficial helper for renaming APA partitions.
-static int apaRename(s32 device, const apa_params_t *oldParams, const apa_params_t *newParams)
+static int apaRename(s32 device, const char *oldId, const char *newId)
 {
     apa_cache_t *clink;
     int i, rv;
 
     // look to see if can make(newname) or not...
-    if ((clink = apaFindPartition(device, newParams->id, &rv)) != NULL) {
+    if ((clink = apaFindPartition(device, newId, &rv)) != NULL) {
         apaCacheFree(clink);
         SignalSema(fioSema);
         return -EEXIST; // File exists
@@ -507,7 +539,7 @@ static int apaRename(s32 device, const apa_params_t *oldParams, const apa_params
     // look to see if open(oldname)
     for (i = 0; i < apaMaxOpen; i++) {
         if (hddFileSlots[i].f != NULL) {
-            if (memcmp(hddFileSlots[i].id, oldParams->id, APA_IDMAX) == 0) {
+            if (memcmp(hddFileSlots[i].id, oldId, APA_IDMAX) == 0) {
                 SignalSema(fioSema);
                 return -EBUSY;
             }
@@ -515,27 +547,23 @@ static int apaRename(s32 device, const apa_params_t *oldParams, const apa_params
     }
 
     // Do not allow system partitions (__*) to be renamed.
-    if (oldParams->id[0] == '_' && oldParams->id[1] == '_')
+#ifndef APA_ALLOW_REMOVE_PARTITION_WITH_LEADING_UNDERSCORE
+    if (oldId[0] == '_' && oldId[1] == '_')
         return -EACCES;
+#endif
 
     // find :)
-    if ((clink = apaFindPartition(device, oldParams->id, &rv)) == NULL) {
+    if ((clink = apaFindPartition(device, oldId, &rv)) == NULL) {
         SignalSema(fioSema);
         return rv;
     }
 
-    // Check for access rights.
-    if (apaPassCmp(clink->header->fpwd, oldParams->fpwd) != 0) {
-        apaCacheFree(clink);
-        return -EACCES;
-    }
-
     // do the renaming :) note: subs have no names!!
-    memcpy(clink->header->id, newParams->id, APA_IDMAX);
+    memcpy(clink->header->id, newId, APA_IDMAX);
 
-    // Update passwords
-    memcpy(clink->header->rpwd, newParams->rpwd, APA_PASSMAX);
-    memcpy(clink->header->fpwd, newParams->fpwd, APA_PASSMAX);
+    // touch creation time
+    apaGetTime(&clink->header->created);
+    clink->header->checksum = apaCheckSum(clink->header, 1);
 
     clink->flags |= APA_CACHE_FLAG_DIRTY;
 
@@ -667,19 +695,27 @@ int hddLseek(iomanX_iop_file_t *f, int post, int whence)
 
 static void fioGetStatFiller(apa_cache_t *clink, iox_stat_t *stat)
 {
-    stat->mode = clink->header->type;
-    stat->attr = clink->header->flags;
+    stat->mode   = clink->header->type;
+    stat->attr   = clink->header->flags;
     stat->hisize = 0;
-    stat->size = clink->header->length;
+    stat->size   = clink->header->length;
     memcpy(&stat->ctime, &clink->header->created, sizeof(apa_ps2time_t));
     memcpy(&stat->atime, &clink->header->created, sizeof(apa_ps2time_t));
     memcpy(&stat->mtime, &clink->header->created, sizeof(apa_ps2time_t));
-    if (clink->header->flags & APA_FLAG_SUB)
-        stat->private_0 = clink->header->number;
-    else
-        stat->private_0 = clink->header->nsub;
     stat->private_1 = 0;
     stat->private_2 = 0;
+    if (clink->header->flags & APA_FLAG_SUB)
+        stat->private_0 = clink->header->number;
+    else {
+        stat->private_0 = clink->header->nsub;
+
+        u64 totalsize = (u64)clink->header->length;
+        for (int i = 0; i < clink->header->nsub; i++) {
+            totalsize += (u64)clink->header->subs[i].length;
+        }
+        stat->private_1 = (u32)(totalsize & 0xFFFFFFFF); // low size
+        stat->private_2 = (u32)(totalsize >> 32);        // high size
+    }
     stat->private_3 = 0;
     stat->private_4 = 0;
 #ifndef APA_STAT_RETURN_PART_LBA
@@ -761,23 +797,13 @@ int hddDread(iomanX_iop_file_t *f, iox_dirent_t *dirent)
 }
 
 /*  Originally, SONY provided no function for renaming partitions.
-    Syntax: rename <Old ID>,<fpwd> <New ID>,<fpwd>
-
-    The full-access password (fpwd) is required.
-    System partitions (__*) cannot be renamed. */
+    Syntax: rename <Old ID> <New ID>*/
 int hddReName(iomanX_iop_file_t *f, const char *oldname, const char *newname)
 {
-    apa_params_t oldParams;
-    apa_params_t newParams;
     int rv;
 
-    if ((rv = fioGetInput(oldname, &oldParams)) < 0)
-        return rv;
-    if ((rv = fioGetInput(newname, &newParams)) < 0)
-        return rv;
-
     WaitSema(fioSema);
-    rv = apaRename(f->unit, &oldParams, &newParams);
+    rv = apaRename(f->unit, oldname, newname);
     SignalSema(fioSema);
 
     return rv;

@@ -7,6 +7,7 @@
 # Review ps2sdk README & LICENSE files for further details.
 
 SUBDIRS = \
+	dongleman \
 	mcman \
 	mcman-old \
 	mcserv \
