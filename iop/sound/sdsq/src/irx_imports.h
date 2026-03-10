@@ -1,14 +1,24 @@
+/*
 # _____     ___ ____     ___ ____
 #  ____|   |    ____|   |        | |____|
 # |     ___|   |____ ___|    ____| |    \    PS2DEV Open Source Project.
 #-----------------------------------------------------------------------
-# Copyright 2001-2004, ps2dev - http://www.ps2dev.org
+# Copyright ps2dev - http://www.ps2dev.org
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
+#
+# Defines all IRX imports.
+*/
 
-EE_SRC_DIR = $(PS2SDKSRC)/ee/rpc/pad/src/
-EE_INC_DIR = $(PS2SDKSRC)/ee/rpc/pad/include/
+#ifndef IOP_IRX_IMPORTS_H
+#define IOP_IRX_IMPORTS_H
 
-EE_CFLAGS += -D_XPAD
+#include <irx.h>
 
-include $(PS2SDKSRC)/ee/rpc/pad/Makefile
+/* Please keep these in alphabetical order!  */
+
+#include <intrman.h>
+#include <loadcore.h>
+#include <sysclib.h>
+
+#endif /* IOP_IRX_IMPORTS_H */

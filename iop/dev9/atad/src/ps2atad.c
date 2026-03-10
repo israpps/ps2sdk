@@ -355,6 +355,7 @@ int _start(int argc, char *argv[])
         for (i = 0; i < NUM_DEVICES; ++i) {
             g_ata_bd[i].priv         = (void *)&atad_devinfo[i];
             g_ata_bd[i].name         = "ata";
+            g_ata_bd[i].path         = "ata";
             g_ata_bd[i].devNr        = i;
             g_ata_bd[i].parNr        = 0;
             g_ata_bd[i].parId        = 0x00;
@@ -1030,7 +1031,7 @@ int ata_device_sector_io64(int device, void *buf, u64 lba, u32 nsectors, int dir
 
         if (atad_devinfo[device].lba48 && (ata_dvrp_workaround ? (lba >= atad_devinfo[device].total_sectors) : 1)) {
             /* Setup for 48-bit LBA.  */
-            len = (nsectors > 65536) ? 65536 : nsectors;
+            len = (u16)((nsectors > 65536) ? 65536 : nsectors); /* 0 means 65536 in LBA48 */
 
             /* Combine bits 24-31 and bits 0-7 of lba into sector.  */
             sector = ((lba >> 16) & 0xff00) | (lba & 0xff);

@@ -78,6 +78,10 @@ ifeq ($(IOP_LINKFILE),)
 IOP_LINKFILE := $(PS2SDKSRC)/iop/startup/src/linkfile
 endif
 
+# If this build produces an exports.o, ensure it is linked first so the
+# export-table object occupies .text offset 0 (helps srxfixup detection).
+IOP_OBJS := $(filter exports.o,$(IOP_OBJS)) $(filter-out exports.o,$(IOP_OBJS))
+
 IOP_OBJS := $(IOP_OBJS:%=$(IOP_OBJS_DIR)%)
 
 IOP_BIN_ELF := $(IOP_BIN:.irx=.notiopmod.elf)
@@ -145,8 +149,15 @@ $(IOP_BIN_STRIPPED_ELF): $(IOP_BIN_ELF)
 	$(DIR_GUARD)
 	$(IOP_STRIP) --strip-unneeded --remove-section=.pdr --remove-section=.comment --remove-section=.mdebug.abi32 --remove-section=.gnu.attributes -o $@ $<
 
+# If the module has no export table, allow symbols at .text offset 0.
+# The jal 0x0 hazard only matters when an export table can dispatch to offset 0.
+IOP_SRXFIXUP_FLAGS := --rb --irx1
+ifeq ($(filter %exports.o,$(IOP_OBJS)),)
+IOP_SRXFIXUP_FLAGS += --allow-zero-text
+endif
+
 $(IOP_BIN): $(IOP_BIN_STRIPPED_ELF) $(PS2SDKSRC)/tools/srxfixup/bin/srxfixup
-	$(PS2SDKSRC)/tools/srxfixup/bin/srxfixup --irx1 -o $@ $<
+	$(PS2SDKSRC)/tools/srxfixup/bin/srxfixup $(IOP_SRXFIXUP_FLAGS) -o $@ $<
 
 $(IOP_LIB)_tmp$(MAKE_CURPID): $(IOP_OBJS)
 	$(DIR_GUARD)

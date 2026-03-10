@@ -916,10 +916,10 @@ extern int sceCdStSeekF(unsigned int lsn);
  * SUPPORTED IN NEWER CDVDMAN MODULES INCLUDED WITHIN NEWER IOPRP ONLY
  *
  * @param func pointer of callback function to be called when power-off processing is activated
- * @param addr an argument which will be passed to the callback function
+ * @param userdata an argument which will be passed to the callback function
  * returns: a pointer to the previous handler function, or a null pointer if nothing has been set eariler
  */
-extern void *sceCdPOffCallback(void (*func)(void *), void *addr);
+extern void *sceCdPOffCallback(void (*func)(void *userdata), void *userdata);
 
 /** Sets the timeout lengths for the certain CDVDMAN's operations.
  * SUPPORTED IN NEWER CDVDMAN MODULES INCLUDED WITHIN NEWER IOPRP ONLY
@@ -1165,6 +1165,30 @@ extern int sceCdReadRegionParams(u32 *arg1, u32 *result);
  * @return 1 on success, 0 on failure
  */
 extern int sceCdWriteRegionParams(u8 arg1, u32 *arg2, u8 *arg3, u32 *result);
+
+/** Gets temperature of the temperature sensor connected to Mechacon in Celsius
+ * Minimum Mechacon firmware version: 50400
+ * SUPPORTED IN XCDVDMAN INCLUDED WITHIN NEWER BOOT ROMS ONLY
+ *
+ * @return 1 on success, 0 on failure
+ */
+extern int cdvdman_152_get_temperature(u32 *param, u32 *status);
+
+/** Stores some sort of buffer from ATAPI drive to PS2 drive.
+ * Minimum Mechacon firmware version: 50400
+ * SUPPORTED BY ONLY DESR/PSX DVR CDVDMAN MODULES
+ *
+ * @return 1 on success, 0 on failure
+ */
+extern int cdvdman_167_atapi2dragon(u8 *inbuf, u32 *status);
+
+/** Stores some sort of buffer from PS2 drive to ATAPI drive.
+ * Minimum Mechacon firmware version: 50400
+ * SUPPORTED BY ONLY DESR/PSX DVR CDVDMAN MODULES
+ *
+ * @return 1 on success, 0 on failure
+ */
+extern int cdvdman_169_dragon2atapi(u8 *outbuf, u32 *status);
 
 // Compatibility names for older ps2sdk versions.
 

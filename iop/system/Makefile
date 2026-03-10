@@ -25,6 +25,7 @@ SUBDIRS = \
 	loadcore \
 	loadfile \
 	modload \
+	msifrpc \
 	mtapman \
 	padman \
 	padman-old \
@@ -32,6 +33,7 @@ SUBDIRS = \
 	rmman \
 	rmman2 \
 	rmmanx \
+	rmreset \
 	rmtapman \
 	rpadman \
 	sbusintr \

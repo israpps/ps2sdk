@@ -64,7 +64,7 @@ typedef struct cdvdman_dma3_parameter_
 typedef struct cdvdman_internal_struct_
 {
 	char m_cdvdman_command;
-	char m_last_error;
+	unsigned char m_last_error;
 	char m_unused_002;
 	char m_ncmd_intr_count;
 	int m_wait_flag;
@@ -113,8 +113,26 @@ typedef struct cdvdman_internal_struct_
 	u16 m_dec_mode_set;
 	u16 m_dec_mode_last_set;
 	int m_waf_set_test;
+	// OSD add
+	int m_cd_mode_ps2_atapi;
+	void (*m_cd_atapi_intr_callback)(int writer_drive);
+	int (*m_chgsys_callback)(void *userdata, int writer_drive);
+	int m_chgsys_callback_next_disktype;
+	int m_unusedosd1;
+	int m_field_0DC;
+	int m_var_sc_ffffffdb;
+	// OSD add end
 	int m_interupt_read_state;
+	// OSD add
+	int m_atapi_disk_ejected;
+	// OSD add end
 	int m_cd_inited;
+	// OSD add
+	int m_medium_removal_state;
+	int m_chgsys_callback_next_disktype_last;
+	int m_chgsys_writer_drive_shell_is_open;
+	int m_unusedosd2[6];
+	// OSD add end
 	int m_tray_is_open;
 	int m_break_cdvdfsv_readchain;
 	int m_unused[10];
@@ -124,8 +142,8 @@ typedef struct cdvdman_internal_struct_
 extern int sceCdCheckCmd(void);
 extern int sceCdNop(void);
 extern void *sceGetFsvRbuf(void);
-extern int sceCdstm0Cb(void (*p)(int));
-extern int sceCdstm1Cb(void (*p)(int));
+extern int sceCdstm0Cb(void (*p)(int val));
+extern int sceCdstm1Cb(void (*p)(int val));
 extern int sceCdSC(int code, int *param);
 /*	Within all CDVDMAN modules, sceCdReadClock and sceCdRC both exist. In the old one, both have exactly the same code.
 	In the newer ones, sceCdReadClock would automatically file off the most significant bit within the month field,
@@ -299,11 +317,14 @@ extern int sceCdDeobfuscateUsingUniqueKey(u8 *buffer, unsigned int shiftval, int
 #define I_sceRemote2_7Get DECLARE_IMPORT(128, sceRemote2_7Get)
 #define I_sceCdReadPS1BootParam DECLARE_IMPORT(148, sceCdReadPS1BootParam)
 #define I_sceCdSetFanProfile DECLARE_IMPORT(150, sceCdSetFanProfile)
+#define I_cdvdman_152_get_temperature DECLARE_IMPORT(152, cdvdman_152_get_temperature)
 #define I_sceCdChgSys DECLARE_IMPORT(154, sceCdChgSys)
 #define I_sceCdNoticeGameStart DECLARE_IMPORT(156, sceCdNoticeGameStart)
 #define I_sceCdDeobfuscateUsingUniqueKey DECLARE_IMPORT(161, sceCdDeobfuscateUsingUniqueKey)
 #define I_sceCdXLEDCtl DECLARE_IMPORT(163, sceCdXLEDCtl)
 #define I_sceCdBuzzerCtl DECLARE_IMPORT(165, sceCdBuzzerCtl)
+#define I_cdvdman_167_atapi2dragon DECLARE_IMPORT(167, cdvdman_167_atapi2dragon)
+#define I_cdvdman_169_dragon2atapi DECLARE_IMPORT(169, cdvdman_169_dragon2atapi)
 #define I_sceCdXBSPowerCtl DECLARE_IMPORT(171, sceCdXBSPowerCtl)
 #define I_sceCdSetAtapiEjectCallback DECLARE_IMPORT(173, sceCdSetAtapiEjectCallback)
 #define I_sceCdSetMediumRemoval DECLARE_IMPORT(175, sceCdSetMediumRemoval)
