@@ -432,6 +432,11 @@ static void *meme_request(unsigned int fno, struct meme_softc *data, int size)
 	int v5;
 	meme_ops_t op;
 
+    printf("MEME_REQUEST buf:%p, siz:%d\n", data->buf, data->size);
+    for(int x=0;x<16;x++) {
+        printf("  pkt[%d]: res:%02X, scr:%08X, dst:%08X, siz:%04X\n", x, data->mvec[x].mv_result, data->mvec[x].mv_src, data->mvec[x].mv_dst, data->mvec[x].mv_size);
+    }
+    
 	data->status = 2;
 	data->pkt.rpl.error = 0;
 	if ( size != 16 )
@@ -450,6 +455,7 @@ static void *meme_request(unsigned int fno, struct meme_softc *data, int size)
 		data->pkt.rpl.error = -v5;
 	}
 	data->pkt.rpl.result = v5;
+    printf("MEME_REQUEST: result %d\n", v5);
 	data->status = 1;
 	return data;
 }
