@@ -13,6 +13,7 @@ SUBDIRS = \
 	smap \
 	smap-modular-netman \
 	smap-modular-none \
+	smap-netdev \
 	smap-none \
 	smap-ps2ip \
 	smbman \

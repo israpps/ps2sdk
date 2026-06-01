@@ -4,19 +4,25 @@
 #ifndef __LWIPOPTS_H__
 #define __LWIPOPTS_H__
 
-/**
- * NO_SYS==1: Provides VERY minimal functionality. Otherwise,
- * use lwIP facilities.
- */
-#define NO_SYS		0
-
 #define LWIP_TIMEVAL_PRIVATE 0
 
 /* ---------- Thread options ---------- */
 /**
- * DEFAULT_THREAD_STACKSIZE: The stack size used by any other lwIP thread.
- * The stack size value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
+ * DEFAULT_THREAD_STACKSIZE: The stack size used by any other lwIP thread
+ * spawned via sys_thread_new(). In our build that's just the tcpip thread.
+ *
+ * With LWIP_TCPIP_CORE_LOCKING=1 the deep socket-API call chains run on
+ * the calling app thread, not on the tcpip thread; the tcpip thread itself
+ * only dispatches timer callbacks and the occasional tcpip_callback (e.g.
+ * link up/down). Worst-case chain on the tcpip thread is roughly
+ *
+ *   tcpip_thread (56) -> sys_check_timeouts (32) -> lwip_cyclic_timer (32)
+ *     -> tcp_slowtmr (72) or dhcp_fine_tmr -> ~150-200 of inner work
+ *   ~= 350-450 bytes + register-save overhead.
+ *
+ * 0x600 (1.5 KB) is the historical 2.0.3 value and matches the call-chain
+ * profile under LWIP_TCPIP_CORE_LOCKING=1. ~2x margin over the measured
+ * worst case.
  */
 #define DEFAULT_THREAD_STACKSIZE	0x600
 
@@ -41,50 +47,25 @@
  */
 #define TCPIP_THREAD_PRIO		DEFAULT_THREAD_PRIO
 
-/**
- * SLIP_THREAD_STACKSIZE: The stack size used by the slipif_loop thread.
- * The stack size value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-#define SLIPIF_THREAD_STACKSIZE		DEFAULT_THREAD_STACKSIZE
-
-/**
- * SLIPIF_THREAD_PRIO: The priority assigned to the slipif_loop thread.
- * The priority value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-#define SLIPIF_THREAD_PRIO		DEFAULT_THREAD_PRIO
-
-/**
- * PPP_THREAD_STACKSIZE: The stack size used by the pppInputThread.
- * The stack size value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-#define PPP_THREAD_STACKSIZE		DEFAULT_THREAD_STACKSIZE
-
-/**
- * PPP_THREAD_PRIO: The priority assigned to the pppInputThread.
- * The priority value itself is platform-dependent, but is passed to
- * sys_thread_new() when the thread is created.
- */
-#define PPP_THREAD_PRIO			DEFAULT_THREAD_PRIO
-
 /*
    ------------------------------------
    ---------- Memory options ----------
    ------------------------------------
 */
-/**
- * MEM_LIBC_MALLOC==1: Use malloc/free/realloc provided by your C-library
- * instead of the lwip internal allocator. Can save code size if you
- * already use it.
- */
-#define MEM_LIBC_MALLOC		0 //FJTRUJY disable it for IOP
-
 /* MEM_ALIGNMENT: should be set to the alignment of the CPU for which
    lwIP is compiled. 4 byte alignment -> define MEM_ALIGNMENT to 4, 2
    byte alignment -> define MEM_ALIGNMENT to 2. */
 #define MEM_ALIGNMENT		4
+
+/**
+ * LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT==1: make mem_free() callable from
+ * any context (ISR/disabled-interrupt) by using SYS_ARCH_PROTECT instead of
+ * a mutex for critical regions. Required on IOP because SMAP RX interrupts
+ * invoke pbuf_free() in interrupt-disabled context; taking a mutex there
+ * would violate the critical section (same effect as ps2dev/lwip's mem.c
+ * patch, but achieved via upstream lwipopts instead of patching lwIP).
+ */
+#define LWIP_ALLOW_MEM_FREE_FROM_OTHER_CONTEXT	1
 
 /**
  * MEM_SIZE: the size of the heap memory. If the application will send
@@ -95,6 +76,25 @@
 #define MEM_SIZE		(TCP_SND_BUF * 2)
 
 /*
+   -----------------------------------------------
+   ---------- IP options -------------------------
+   -----------------------------------------------
+*/
+/**
+ * IP_REASSEMBLY==1: Reassemble incoming fragmented IP packets.
+ * Disabled: PS2 networking targets a local LAN with MTU=1500, and
+ * TCP negotiates MSS=1460 so fragments never arise in the common
+ * case. Frees MEMP_NUM_REASSDATA / MEMP_NUM_FRAG_PBUF pool entries.
+ */
+#define IP_REASSEMBLY		0
+
+/**
+ * IP_FRAG==1: Fragment outgoing IP packets if their size exceeds MTU.
+ * Disabled: TCP_MSS=1460 ensures we never exceed Ethernet MTU=1500.
+ */
+#define IP_FRAG			0
+
+/*
    ------------------------------------------------
    ---------- Internal Memory Pool Sizes ----------
    ------------------------------------------------
@@ -102,20 +102,11 @@
 /**
  * MEMP_NUM_TCPIP_MSG_INPKT: the number of struct tcpip_msg, which are used
  * for incoming packets.
- * (only needed if you use tcpip.c)
+ * SP193: this should be around the size of the TCP window because the
+ * TCPIP thread may take a while to execute (non-preemptive multitasking),
+ * otherwise incoming frames may get dropped.
  */
-//SP193: this should be around the size of the TCP window because the TCPIP thread may take a while to execute (non-preemptive multitasking), otherwise incoming frames may get dropped.
-#ifndef LWIP_TCPIP_CORE_LOCKING_INPUT
-#define MEMP_NUM_TCPIP_MSG_INPKT        24
-#endif
-
-/**
- * MEMP_NUM_TCPIP_MSG_API: the number of struct tcpip_msg, which are used
- * for callback/timeout API communication.
- * (only needed if you use tcpip.c)
- */
-//SP193: this should be around the size of MEM_SIZE (in PBUFs), to prevent transmissions from being potentially being dropped.
-#define MEMP_NUM_TCPIP_MSG_API		8
+#define MEMP_NUM_TCPIP_MSG_INPKT	24
 
 /**
  * MEMP_NUM_NETCONN: the number of struct netconns.
@@ -129,21 +120,22 @@
 #define PBUF_POOL_SIZE		32	//SP193: should be at least ((TCP_WND/PBUF_POOL_BUFSIZE)+1). But that is too small to handle simultaneous connections.
 
 /**
- * LWIP_TCPIP_CORE_LOCKING_INPUT: when LWIP_TCPIP_CORE_LOCKING is enabled,
- * this lets tcpip_input() grab the mutex for input packets as well,
- * instead of allocating a message and passing it to tcpip_thread.
- *
- * ATTENTION: this does not work when tcpip_input() is called from
- * interrupt context!
+ * LWIP_TCPIP_CORE_LOCKING==1: matches lwIP 2.2.1's upstream default. Socket
+ * and netconn API calls take the core mutex on the calling app thread and
+ * run synchronously, instead of round-tripping through the tcpip thread's
+ * mailbox. Saves a context switch + sem wait per API call. lwIP releases
+ * the core lock before any blocking I/O wait (mbox_fetch on connection
+ * mboxes), so the tcpip thread and SMAP RX can still run to deliver data.
+ */
+#define LWIP_TCPIP_CORE_LOCKING		1
+
+/**
+ * LWIP_TCPIP_CORE_LOCKING_INPUT==1: tcpip_input() takes the core mutex
+ * directly instead of allocating a message. Safe here because the netif
+ * input callback runs in IntrHandlerThread (smap.c) — a normal thread,
+ * not interrupt context — so the lock acquire is allowed.
  */
 #define LWIP_TCPIP_CORE_LOCKING_INPUT	1
-
-/** SYS_LIGHTWEIGHT_PROT
- * define SYS_LIGHTWEIGHT_PROT in lwipopts.h if you want inter-task protection
- * for certain critical regions during buffer allocation, deallocation and
- * memory allocation and deallocation.
- */
-#define SYS_LIGHTWEIGHT_PROT	1
 
 /*
    ---------------------------------
@@ -168,17 +160,14 @@
 #endif
 
 /**
- * DHCP_DOES_ARP_CHECK==1: Do an ARP check on the offered address.
+ * LWIP_DHCP_DOES_ACD_CHECK==0: skip RFC 5227 Address Conflict Detection on
+ * the DHCP-offered address (replaces the pre-2.2.0 DHCP_DOES_ARP_CHECK).
+ * PS2 networking targets a controlled LAN; the saved code+timer/RAM beats
+ * guarding against a vanishingly unlikely IP collision. Combined with
+ * LWIP_AUTOIP=0 (default) this lets LWIP_ACD default to 0 too.
  */
-#define DHCP_DOES_ARP_CHECK	0	//Don't do the ARP check because an IP address would be first required.
-
-/**
- * LWIP_DHCP_CHECK_LINK_UP==1: dhcp_start() only really starts if the netif has
- * NETIF_FLAG_LINK_UP set in its flags. As this is only an optimization and
- * netif drivers might not set this flag, the default is off. If enabled,
- * netif_set_link_up() must be called to continue dhcp starting.
- */
-#define LWIP_DHCP_CHECK_LINK_UP	1
+#define LWIP_DHCP_DOES_ACD_CHECK	0
+#define LWIP_ACD			0
 
 /*
    ----------------------------------
@@ -241,10 +230,6 @@
    ---------- Socket options ----------
    ------------------------------------
 */
-/* LWIP_SOCKET_SET_ERRNO==1: Set errno when socket functions cannot complete
- * successfully, as required by POSIX. Default is POSIX-compliant.
- */
-#define LWIP_SOCKET_SET_ERRNO	0
 /**
  * LWIP_POSIX_SOCKETS_IO_NAMES==1: Enable POSIX-style sockets functions names.
  * Disable this option if you use a POSIX operating system that uses the same

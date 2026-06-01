@@ -92,36 +92,6 @@ SMapLowLevelOutput(NetIF *pNetIF, PBuf *pOutput)
     return result;
 }
 
-// SMapOutput():
-
-// This function is called by the TCP/IP stack when an IP packet should be sent. It'll be invoked in the context of the
-// tcpip-thread, hence no synchronization is required.
-//  For LWIP versions before v1.3.0.
-#ifdef PRE_LWIP_130_COMPAT
-static err_t
-SMapOutput(NetIF *pNetIF, PBuf *pOutput, IPAddr *pIPAddr)
-{
-    err_t result;
-    PBuf *pBuf;
-
-#if USE_GP_REGISTER
-    void *OldGP;
-
-    OldGP = SetModuleGP();
-#endif
-
-    pBuf = etharp_output(pNetIF, pIPAddr, pOutput);
-
-    result = pBuf != NULL ? SMapLowLevelOutput(pNetIF, pBuf) : ERR_OK;
-
-#if USE_GP_REGISTER
-    SetGP(OldGP);
-#endif
-
-    return result;
-}
-#endif
-
 // SMapIFInit():
 
 // Should be called at the beginning of the program to set up the network interface.
@@ -138,20 +108,12 @@ SMapIFInit(NetIF *pNetIF)
     TxHead = NULL;
     TxTail = NULL;
 
-    pNetIF->name[0] = IFNAME0;
-    pNetIF->name[1] = IFNAME1;
-#ifdef PRE_LWIP_130_COMPAT
-    pNetIF->output = &SMapOutput; // For LWIP versions before v1.3.0.
-#else
-    pNetIF->output = &etharp_output;                             // For LWIP 1.3.0 and later.
-#endif
+    pNetIF->name[0]    = IFNAME0;
+    pNetIF->name[1]    = IFNAME1;
+    pNetIF->output     = &etharp_output;
     pNetIF->linkoutput = &SMapLowLevelOutput;
     pNetIF->hwaddr_len = NETIF_MAX_HWADDR_LEN;
-#ifdef PRE_LWIP_130_COMPAT
-    pNetIF->flags |= (NETIF_FLAG_LINK_UP | NETIF_FLAG_BROADCAST); // For LWIP versions before v1.3.0.
-#else
-    pNetIF->flags |= (NETIF_FLAG_ETHARP | NETIF_FLAG_BROADCAST); // For LWIP v1.3.0 and later.
-#endif
+    pNetIF->flags |= (NETIF_FLAG_ETHARP | NETIF_FLAG_BROADCAST);
     pNetIF->mtu = 1500;
 
     // Get MAC address.
@@ -269,13 +231,18 @@ void PS2IPLinkStateDown(void)
 }
 #endif
 
-#ifdef BUILDING_SMAP_NETMAN
-// While the header of the export table is small, the large size of the export table (as a whole) places it in data instead of sdata.
-extern struct irx_export_table _exp_smap __attribute__((section("data")));
+#if defined(BUILDING_SMAP_NETMAN) || defined(BUILDING_SMAP_NETDEV)
+/* DECLARE_EXPORT_TABLE in iop/kernel/include/irx.h places the export
+   table in .text via a section(".text\n\t#") asm trick, so the extern
+   declaration needs no section attribute. (The previous section("data")
+   was misleading: a bare "data" name produces an orphan ELF section the
+   IRX loader does not allocate; harmless here only because the actual
+   definition lives in .text.) */
+extern struct irx_export_table _exp_smap;
 #endif
 
 #ifdef BUILDING_SMAP_MODULAR
-extern struct irx_export_table _exp_smapmodu __attribute__((section("data")));
+extern struct irx_export_table _exp_smapmodu;
 #endif
 
 int _start(int argc, char *argv[])
@@ -287,11 +254,24 @@ int _start(int argc, char *argv[])
     int numArgs;
     char **pArgv;
 #endif
-#ifdef BUILDING_SMAP_NETMAN
+#if defined(BUILDING_SMAP_NETMAN) || defined(BUILDING_SMAP_NETDEV)
     int result;
 #endif
 
-#ifdef BUILDING_SMAP_NETMAN
+#ifdef BUILDING_SMAP_NETDEV
+    if (argc < 0) {
+        result = smap_deinit();
+        if (result == MODULE_NO_RESIDENT_END) {
+#ifdef BUILDING_SMAP_MODULAR
+            ReleaseLibraryEntries(&_exp_smapmodu);
+#endif
+            ReleaseLibraryEntries(&_exp_smap);
+        }
+        return result;
+    }
+#endif
+
+#if defined(BUILDING_SMAP_NETMAN) || defined(BUILDING_SMAP_NETDEV)
     if (RegisterLibraryEntries(&_exp_smap) != 0) {
         DEBUG_PRINTF("module already loaded\n");
         return MODULE_NO_RESIDENT_END;
@@ -324,6 +304,8 @@ int _start(int argc, char *argv[])
         return MODULE_NO_RESIDENT_END;
     } */
 
+    (void)argc;
+    (void)argv;
 #ifdef BUILDING_SMAP_PS2IP
     // Parse IP args.
     DEBUG_PRINTF("argc %d\n", argc);
@@ -348,7 +330,7 @@ int _start(int argc, char *argv[])
     }
 #endif
 
-#ifdef BUILDING_SMAP_NETMAN
+#if defined(BUILDING_SMAP_NETMAN) || defined(BUILDING_SMAP_NETDEV)
     if ((result = smap_init(argc, argv)) < 0) {
         DEBUG_PRINTF("smap_init -> %d\n", result);
         ReleaseLibraryEntries(&_exp_smap);
