@@ -25,8 +25,7 @@ static void DisplayROMImgDetails(const ROMIMG *ROMImg)
            GREEN"Name"DEFCOL"      \tSize\n"
            "-----------------------------\n");
     for (i = 0, file = ROMImg->files, TotalSize = 0; i < ROMImg->NumFiles; TotalSize += file->RomDir.size, i++, file++) {
-        strncpy(filename, file->RomDir.name, sizeof(filename) - 1);
-        filename[sizeof(filename) - 1] = '\0';
+        snprintf(filename, sizeof(filename), "%.*s", (int)sizeof(file->RomDir.name), file->RomDir.name);
         printf(GREEN"%-10s"DEFCOL"\t%u\n", filename, file->RomDir.size);
     }
 
@@ -143,8 +142,8 @@ int main(int argc, char **argv)
     } else if ((argc == 3 || argc == 4) && strcmp(argv[1], "-x") == 0) {
         if ((result = LoadROMImg(&ROMImg, argv[2])) == 0) {
             if (argc == 3) {
-                char FOLDER[256] = "ext_";
-                strcat(FOLDER, argv[2]);
+                char FOLDER[256];
+                snprintf(FOLDER, sizeof(FOLDER), "ext_%s", argv[2]);
 #if defined(_WIN32) || defined(WIN32)
                 mkdir(FOLDER);
 #else
@@ -160,8 +159,7 @@ int main(int argc, char **argv)
            			   GREEN"Name"DEFCOL"      \tSize\n"
                        "-----------------------------\n");
                 for (i = 0, file = ROMImg.files; i < ROMImg.NumFiles; i++, file++) {
-                    strncpy(filename, file->RomDir.name, sizeof(filename) - 1);
-                    filename[sizeof(filename) - 1] = '\0';
+                    snprintf(filename, sizeof(filename), "%.*s", (int)sizeof(file->RomDir.name), file->RomDir.name);
                     printf(GREEN"%-10s"DEFCOL"\t%u\n", filename, file->RomDir.size);
 
                     if (file->RomDir.size > 0) {

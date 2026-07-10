@@ -280,8 +280,7 @@ int __fioDreadHelper(void *userdata, struct dirent *dir)
     }
 
     dir->d_fileno = rv; // TODO: This number should be in theory a unique number per file
-    strncpy(dir->d_name, iodir.name, __MAXNAMLEN);
-    dir->d_name[__MAXNAMLEN - 1] = 0;
+    snprintf(dir->d_name, sizeof(dir->d_name), "%.*s", (int)(sizeof(iodir.name) - 1), iodir.name);
     dir->d_reclen = 0;
     switch (iodir.stat.mode & FIO_SO_IFMT) {
         case FIO_SO_IFLNK: dir->d_type = DT_LNK;     break;
@@ -501,8 +500,22 @@ void __fioOpsInitializeImpl(void)
 }
 #endif
 
+extern _libcglue_fdman_path_ops_t * _ps2sdk_get_default_fdman_path_ops(void);
+#ifdef F__ps2sdk_get_default_fdman_path_ops
+_libcglue_fdman_path_ops_t * __attribute__((weak)) _ps2sdk_get_default_fdman_path_ops(void)
+{
+    return &__fio_fdman_path_ops;
+}
+#endif
+
 #ifdef F__libcglue_fdman_path_ops
-_libcglue_fdman_path_ops_t *_libcglue_fdman_path_ops = &__fio_fdman_path_ops;
+_libcglue_fdman_path_ops_t *_libcglue_fdman_path_ops = NULL;
+
+__attribute__((constructor))
+static void __libcglue_fdman_path_ops_initialize(void)
+{
+    _libcglue_fdman_path_ops = _ps2sdk_get_default_fdman_path_ops();
+}
 #endif
 
 #ifdef F__libcglue_fdman_socket_ops

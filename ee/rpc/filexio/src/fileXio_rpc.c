@@ -23,12 +23,11 @@
 #include <sys/fcntl.h>
 #include <sys/stat.h>
 #include <ps2sdkapi.h>
+#include <iopcontrol.h>
 
 #define NEWLIB_PORT_AWARE
 #include <fileXio_rpc.h>
 #include <errno.h>
-
-extern int _iop_reboot_count;
 
 void _ps2sdk_fileXio_init();
 void _ps2sdk_fileXio_deinit();
@@ -51,12 +50,6 @@ int __intr_data[0xC00] __attribute__((aligned(64)));
 extern int __intr_data[0xC00] __attribute__((aligned(64)));
 #endif
 
-#ifdef F___fileXioInited
-int __fileXioInited = 0;
-#else
-extern int __fileXioInited;
-#endif
-
 #ifdef F___fileXioBlockMode
 int __fileXioBlockMode;
 #else
@@ -64,13 +57,13 @@ extern int __fileXioBlockMode;
 #endif
 
 #ifdef F___fileXioCompletionSema
-int __fileXioCompletionSema = -1;
+int __fileXioCompletionSema;
 #else
 extern int __fileXioCompletionSema;
 #endif
 
 #ifdef F___lock_sema_id
-int __lock_sema_id = -1;
+int __lock_sema_id;
 #else
 extern int __lock_sema_id;
 #endif
@@ -95,16 +88,11 @@ int fileXioInit(void)
 {
 	int res;
 	ee_sema_t sp;
-	static int _rb_count = 0;
 
-	if(_rb_count != _iop_reboot_count)
-	{
-		_rb_count = _iop_reboot_count;
-
+	if (HasIopRebootedSinceLastCall())
 		fileXioExit();
-	}
 
-	if(__fileXioInited)
+	if(__cd0.server)
 	{
 		return 0;
 	}
@@ -113,6 +101,11 @@ int fileXioInit(void)
 	sp.max_count = 1;
 	sp.option = 0;
 	__lock_sema_id = CreateSema(&sp);
+	if (__lock_sema_id < 0)
+	{
+		__lock_sema_id = 0;
+		return -1;
+	}
 
 	while(((res = sceSifBindRpc(&__cd0, FILEXIO_IRX, 0)) >= 0) && (__cd0.server == NULL))
 		nopdelay();
@@ -125,9 +118,11 @@ int fileXioInit(void)
 	sp.option = 0;
 	__fileXioCompletionSema = CreateSema(&sp);
 	if (__fileXioCompletionSema < 0)
+	{
+		__fileXioCompletionSema = 0;
 		return -1;
+	}
 
-	__fileXioInited = 1;
 	__fileXioBlockMode = FXIO_WAIT;
 
 	_ps2sdk_fileXio_init();
@@ -139,15 +134,22 @@ int fileXioInit(void)
 #ifdef F_fileXioExit
 void fileXioExit(void)
 {
-	if(__fileXioInited)
+	if(__cd0.server)
 	{
-		if(__lock_sema_id >= 0) DeleteSema(__lock_sema_id);
-		if(__fileXioCompletionSema >= 0) DeleteSema(__fileXioCompletionSema);
+		if (__lock_sema_id > 0)
+		{
+			DeleteSema(__lock_sema_id);
+			__lock_sema_id = 0;
+		}
+		if (__fileXioCompletionSema > 0)
+		{
+			DeleteSema(__fileXioCompletionSema);
+			__fileXioCompletionSema = 0;
+		}
 
 		memset(&__cd0, 0, sizeof(__cd0));
 
 		_ps2sdk_fileXio_deinit();
-		__fileXioInited = 0;
 	}
 }
 #endif
@@ -206,7 +208,7 @@ int fileXioGetdir(const char* pathname, struct fileXioDirEntry dirEntry[], unsig
 	WaitSema(__fileXioCompletionSema);
 
 	// copy the requested pathname to the rpc buffer
-	strncpy(packet->pathname, pathname, sizeof(packet->pathname));
+	strlcpy(packet->pathname, pathname, sizeof(packet->pathname));
 
 	sceSifWriteBackDCache(dirEntry, (sizeof(struct fileXioDirEntry) * req_entries));
 
@@ -239,8 +241,8 @@ int fileXioMount(const char* mountpoint, const char* mountstring, int flag)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->blockdevice, mountstring, sizeof(packet->blockdevice));
-	strncpy(packet->mountpoint, mountpoint, sizeof(packet->mountpoint));
+	strlcpy(packet->blockdevice, mountstring, sizeof(packet->blockdevice));
+	strlcpy(packet->mountpoint, mountpoint, sizeof(packet->mountpoint));
 	packet->flags = flag;
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_MOUNT, __fileXioBlockMode, __sbuff, sizeof(struct fxio_mount_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
@@ -268,7 +270,7 @@ int fileXioUmount(const char* mountpoint)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->mountpoint, mountpoint, sizeof(packet->mountpoint));
+	strlcpy(packet->mountpoint, mountpoint, sizeof(packet->mountpoint));
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_UMOUNT, __fileXioBlockMode, __sbuff, sizeof(struct fxio_unmount_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
 	{
@@ -295,8 +297,8 @@ int fileXioCopyfile(const char* source, const char* dest, int mode)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->source, source, sizeof(packet->source));
-	strncpy(packet->dest, dest, sizeof(packet->dest));
+	strlcpy(packet->source, source, sizeof(packet->source));
+	strlcpy(packet->dest, dest, sizeof(packet->dest));
 	packet->mode = mode;
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_COPYFILE, __fileXioBlockMode, __sbuff, sizeof(struct fxio_copyfile_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
@@ -324,7 +326,7 @@ int fileXioMkdir(const char* pathname, int mode)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->pathname, pathname, sizeof(packet->pathname));
+	strlcpy(packet->pathname, pathname, sizeof(packet->pathname));
 	packet->mode = mode;
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_MKDIR, __fileXioBlockMode, __sbuff, sizeof(struct fxio_mkdir_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
@@ -352,7 +354,7 @@ int fileXioRmdir(const char* pathname)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->pathname, pathname, sizeof(packet->pathname));
+	strlcpy(packet->pathname, pathname, sizeof(packet->pathname));
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_RMDIR, __fileXioBlockMode, __sbuff, sizeof(struct fxio_pathsel_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
 	{
@@ -379,7 +381,7 @@ int fileXioRemove(const char* pathname)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->pathname, pathname, sizeof(packet->pathname));
+	strlcpy(packet->pathname, pathname, sizeof(packet->pathname));
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_REMOVE, __fileXioBlockMode, __sbuff, sizeof(struct fxio_pathsel_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
 	{
@@ -406,8 +408,8 @@ int fileXioRename(const char* source, const char* dest)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->source, source, sizeof(packet->source));
-	strncpy(packet->dest, dest, sizeof(packet->dest));
+	strlcpy(packet->source, source, sizeof(packet->source));
+	strlcpy(packet->dest, dest, sizeof(packet->dest));
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_RENAME, __fileXioBlockMode, __sbuff, sizeof(struct fxio_rename_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
 	{
@@ -434,8 +436,8 @@ int fileXioSymlink(const char* source, const char* dest)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->source, source, sizeof(packet->source));
-	strncpy(packet->dest, dest, sizeof(packet->dest));
+	strlcpy(packet->source, source, sizeof(packet->source));
+	strlcpy(packet->dest, dest, sizeof(packet->dest));
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_SYMLINK, __fileXioBlockMode, __sbuff, sizeof(struct fxio_rename_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
 	{
@@ -465,7 +467,7 @@ int fileXioReadlink(const char* source, char* buf, unsigned int buflen)
 	if( !IS_UNCACHED_SEG(buf))
   	  sceSifWriteBackDCache(buf, buflen);
 
-	strncpy(packet->source, source, sizeof(packet->source));
+	strlcpy(packet->source, source, sizeof(packet->source));
 	packet->buffer = buf;
 	packet->buflen = buflen;
 
@@ -494,7 +496,7 @@ int fileXioChdir(const char* pathname)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->pathname, pathname, sizeof(packet->pathname));
+	strlcpy(packet->pathname, pathname, sizeof(packet->pathname));
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_CHDIR, __fileXioBlockMode, __sbuff, sizeof(struct fxio_pathsel_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
 	{
@@ -526,7 +528,7 @@ int fileXioOpen(const char* source, int flags, ...)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->pathname, source, sizeof(packet->pathname));
+	strlcpy(packet->pathname, source, sizeof(packet->pathname));
 	packet->flags = flags;
 	packet->mode = mode;
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_OPEN, __fileXioBlockMode, __sbuff, sizeof(struct fxio_open_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
@@ -736,7 +738,7 @@ int fileXioChStat(const char *name, iox_stat_t *stat, int mask)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->pathname, name, sizeof(packet->pathname));
+	strlcpy(packet->pathname, name, sizeof(packet->pathname));
 	packet->stat = stat;
 	packet->mask = mask;
 
@@ -768,7 +770,7 @@ int fileXioGetStat(const char *name, iox_stat_t *stat)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->pathname, name, sizeof(packet->pathname));
+	strlcpy(packet->pathname, name, sizeof(packet->pathname));
 	packet->stat = stat;
 
 	if(!IS_UNCACHED_SEG(stat))
@@ -799,9 +801,8 @@ int fileXioFormat(const char *dev, const char *blockdev, const void *args, int a
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->device, dev, sizeof(packet->device));
-	if(blockdev)
-		strncpy(packet->blockDevice, blockdev, sizeof(packet->blockDevice));
+	strlcpy(packet->device, dev, sizeof(packet->device));
+	strlcpy(packet->blockDevice, blockdev ? blockdev : "", sizeof(packet->blockDevice));
 
 	if((unsigned int)arglen > sizeof(packet->args)) arglen = sizeof(packet->args);
 	memcpy(packet->args, args, arglen);
@@ -832,7 +833,7 @@ int fileXioSync(const char *devname, int flag)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->device, devname, sizeof(packet->device));
+	strlcpy(packet->device, devname, sizeof(packet->device));
 	packet->flags = flag;
 
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_SYNC, __fileXioBlockMode, __sbuff, sizeof(struct fxio_sync_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
@@ -860,7 +861,7 @@ int fileXioDopen(const char *name)
 	_lock();
 	WaitSema(__fileXioCompletionSema);
 
-	strncpy(packet->pathname, name, sizeof(packet->pathname));
+	strlcpy(packet->pathname, name, sizeof(packet->pathname));
 	if((rv = sceSifCallRpc(&__cd0, FILEXIO_DOPEN, __fileXioBlockMode, __sbuff, sizeof(struct fxio_pathsel_packet), __sbuff, 4, (void *)&_fxio_intr, NULL)) >= 0)
 	{
 		if(__fileXioBlockMode == FXIO_NOWAIT) { rv = 0; }
@@ -954,8 +955,7 @@ int fileXioDevctl(const char *name, int cmd, void *arg, unsigned int arglen, voi
 
 	if(arglen > CTL_BUF_SIZE) arglen = CTL_BUF_SIZE;
 	if(buflen > CTL_BUF_SIZE) buflen = CTL_BUF_SIZE;
-	strncpy(packet->name, name, CTL_BUF_SIZE);
-	packet->name[CTL_BUF_SIZE-1] = '\0';
+	strlcpy(packet->name, name, sizeof(packet->name));
 	memcpy(packet->arg, arg, arglen);
 
 	packet->cmd = cmd;

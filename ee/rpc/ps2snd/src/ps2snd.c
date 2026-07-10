@@ -14,12 +14,15 @@
 #include <iopheap.h>
 #include <stdio.h>
 #include <ps2snd.h>
+#include <iopcontrol.h>
 
 static SifRpcClientData_t sd_client ALIGNED(64);
 
 int sceSdInit(int flag)
 {
 	s32 buf[1] ALIGNED(64);
+	if (HasIopRebootedSinceLastCall())
+		memset(&sd_client, 0, sizeof(sd_client));
 
 	{
 
@@ -240,7 +243,7 @@ int sndStreamOpen(char *file, u32 voices, u32 flags, u32 bufaddr, u32 bufsize)
 	buf[1] = flags;
 	buf[2] = bufaddr;
 	buf[3] = bufsize;
-	strncpy((char*)&buf[4], file, 27*4);
+	strlcpy((char*)&buf[4], file, 27*4);
 	buf[31] = 0;
 
 	sceSifCallRpc(&sd_client, PS2SND_StreamOpen, 0, buf, 128, buf, 4, NULL, NULL);

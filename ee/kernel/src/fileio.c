@@ -21,13 +21,12 @@
 #define NEWLIB_PORT_AWARE
 #include <fileio.h>
 #include <string.h>
+#include <iopcontrol.h>
 #include <fileio-common.h>
 
 #define D(fmt, args...) printf("(%s:%s:%i):" #fmt, __FILE__, __FUNCTION__, __LINE__, ##args)
 
-extern int _iop_reboot_count;
 extern SifRpcClientData_t _fio_cd;
-extern int _fio_init;
 extern int _fio_block_mode;
 extern int _fio_io_sema;
 extern int _fio_completion_sema;
@@ -41,10 +40,9 @@ void _fio_intr();
 SifRpcClientData_t _fio_cd;
 int _fio_recv_data[512] __attribute__((aligned(64)));
 int _fio_intr_data[32] __attribute__((aligned(64)));
-int _fio_init = 0;
 int _fio_block_mode;
-int _fio_io_sema         = -1;
-int _fio_completion_sema = -1;
+int _fio_io_sema;
+int _fio_completion_sema;
 #endif
 
 #ifdef F_fio_init
@@ -52,15 +50,10 @@ int fioInit(void)
 {
     int res;
     ee_sema_t sema;
-    static int _rb_count = 0;
-
-    if (_rb_count != _iop_reboot_count) {
-        _rb_count = _iop_reboot_count;
-
+    if (HasIopRebootedSinceLastCall())
         fioExit();
-    }
 
-    if (_fio_init)
+    if (_fio_cd.server)
         return 0;
 
     sceSifInitRpc(0);
@@ -77,7 +70,10 @@ int fioInit(void)
     sema.option          = 0;
     _fio_completion_sema = CreateSema(&sema);
     if (_fio_completion_sema < 0)
+    {
+        _fio_completion_sema = 0;
         return -E_LIB_SEMA_CREATE;
+    }
 
     // Unofficial: create a locking semaphore to prevent a thread from overwriting another thread's return status.
     sema.init_count = 1;
@@ -85,9 +81,11 @@ int fioInit(void)
     sema.option     = 0;
     _fio_io_sema    = CreateSema(&sema);
     if (_fio_io_sema < 0)
+    {
+        _fio_io_sema = 0;
         return -E_LIB_SEMA_CREATE;
+    }
 
-    _fio_init       = 1;
     _fio_block_mode = FIO_WAIT;
 
     return 0;
@@ -151,14 +149,15 @@ void fioSetBlockMode(int blocking)
 #ifdef F_fio_exit
 void fioExit(void)
 {
-    if (_fio_init) {
-        _fio_init = 0;
+    if (_fio_cd.server) {
         memset(&_fio_cd, 0, sizeof _fio_cd);
-        if (_fio_completion_sema >= 0) {
+        if (_fio_completion_sema > 0) {
             DeleteSema(_fio_completion_sema);
+            _fio_completion_sema = 0;
         }
-        if (_fio_io_sema >= 0) {
+        if (_fio_io_sema > 0) {
             DeleteSema(_fio_io_sema);
+            _fio_io_sema = 0;
         }
     }
 }
@@ -177,8 +176,8 @@ int fioOpen(const char *name, int mode)
     WaitSema(_fio_completion_sema);
 
     arg.mode = mode;
-    strncpy(arg.name, name, FIO_PATH_MAX - 1);
-    arg.name[FIO_PATH_MAX - 1] = 0;
+    strncpy(arg.name, name, sizeof(arg.name));
+    arg.name[sizeof(arg.name) - 1] = 0;
 
     if ((res = sceSifCallRpc(&_fio_cd, FIO_F_OPEN, _fio_block_mode, &arg, sizeof arg,
                           _fio_recv_data, 4, (void *)_fio_intr, NULL)) >= 0) {
@@ -400,8 +399,8 @@ int fioRemove(const char *name)
     WaitSema(_fio_io_sema);
     WaitSema(_fio_completion_sema);
 
-    strncpy(arg.path, name, FIO_PATH_MAX - 1);
-    arg.path[FIO_PATH_MAX - 1] = 0;
+    strncpy(arg.path, name, sizeof(arg.path));
+    arg.path[sizeof(arg.path) - 1] = 0;
 
     if ((res = sceSifCallRpc(&_fio_cd, FIO_F_REMOVE, 0, &arg, sizeof arg,
                           &arg, 4, (void *)_fio_intr, NULL)) >= 0) {
@@ -433,8 +432,8 @@ int fioMkdir(const char *path)
     WaitSema(_fio_io_sema);
     WaitSema(_fio_completion_sema);
 
-    strncpy(arg.path, path, FIO_PATH_MAX - 1);
-    arg.path[FIO_PATH_MAX - 1] = 0;
+    strncpy(arg.path, path, sizeof(arg.path));
+    arg.path[sizeof(arg.path) - 1] = 0;
 
     if ((res = sceSifCallRpc(&_fio_cd, FIO_F_MKDIR, 0, &arg, sizeof arg,
                           &arg, 4, (void *)_fio_intr, NULL)) >= 0) {
@@ -466,8 +465,8 @@ int fioRmdir(const char *dirname)
     WaitSema(_fio_io_sema);
     WaitSema(_fio_completion_sema);
 
-    strncpy(arg.path, dirname, FIO_PATH_MAX - 1);
-    arg.path[FIO_PATH_MAX - 1] = 0;
+    strncpy(arg.path, dirname, sizeof(arg.path));
+    arg.path[sizeof(arg.path) - 1] = 0;
 
     if ((res = sceSifCallRpc(&_fio_cd, FIO_F_RMDIR, 0, &arg, sizeof arg,
                           &arg, 4, (void *)_fio_intr, NULL)) >= 0) {
@@ -543,8 +542,8 @@ int fioDopen(const char *name)
     WaitSema(_fio_io_sema);
     WaitSema(_fio_completion_sema);
 
-    strncpy(arg.name, name, FIO_PATH_MAX - 1);
-    arg.name[FIO_PATH_MAX - 1] = 0;
+    strncpy(arg.name, name, sizeof(arg.name));
+    arg.name[sizeof(arg.name) - 1] = 0;
 
     if ((res = sceSifCallRpc(&_fio_cd, FIO_F_DOPEN, 0, &arg, sizeof arg,
                           &arg, 4, (void *)_fio_intr, NULL)) >= 0) {
@@ -637,8 +636,8 @@ int fioGetstat(const char *name, io_stat_t *buf)
     WaitSema(_fio_completion_sema);
 
     arg.p.buf = buf;
-    strncpy(arg.name, name, FIO_PATH_MAX - 1);
-    arg.name[FIO_PATH_MAX - 1] = 0;
+    strncpy(arg.name, name, sizeof(arg.name));
+    arg.name[sizeof(arg.name) - 1] = 0;
 
     if (!IS_UNCACHED_SEG(buf))
         sceSifWriteBackDCache(buf, sizeof(io_stat_t));
@@ -671,8 +670,8 @@ int fioChstat(const char *name, io_stat_t *buf, u32 cbit)
 
     arg.p.cbit = cbit;
     memcpy(&arg.stat, buf, sizeof(io_stat_t));
-    strncpy(arg.name, name, FIO_PATH_MAX - 1);
-    arg.name[FIO_PATH_MAX - 1] = 0;
+    strncpy(arg.name, name, sizeof(arg.name));
+    arg.name[sizeof(arg.name) - 1] = 0;
 
     if ((res = sceSifCallRpc(&_fio_cd, FIO_F_CHSTAT, 0, &arg, sizeof arg,
                           &arg, 4, (void *)_fio_intr, NULL)) >= 0) {
@@ -704,8 +703,8 @@ int fioFormat(const char *name)
     WaitSema(_fio_io_sema);
     WaitSema(_fio_completion_sema);
 
-    strncpy(arg.path, name, FIO_PATH_MAX - 1);
-    arg.path[FIO_PATH_MAX - 1] = 0;
+    strncpy(arg.path, name, sizeof(arg.path));
+    arg.path[sizeof(arg.path) - 1] = 0;
 
     if ((res = sceSifCallRpc(&_fio_cd, FIO_F_FORMAT, 0, &arg, sizeof arg,
                           &arg, 4, (void *)_fio_intr, NULL)) >= 0) {

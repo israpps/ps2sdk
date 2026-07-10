@@ -27,6 +27,7 @@
 #include <string.h>
 #include <libcdvd.h>
 #include <stdarg.h>
+#include <iopcontrol.h>
 
 #include "internal.h"
 
@@ -62,10 +63,6 @@ typedef struct
 } SearchFilePkt;
 
 #ifdef F__libcdvd_internals
-// bind variables
-int bindInit       = -1;
-int bindDiskReady  = -1;
-int bindSearchFile = -1;
 // version variables
 int initVersionCdvdfsv;
 int initVersionCdvdman;
@@ -82,7 +79,7 @@ int CdDebug = 0;
 
 // semaphore ids
 /** callback semaphore id */
-int callbackSemaId = -1;
+int callbackSemaId;
 /** callback semaphore variable (not a real semaphore) */
 volatile int cbSema = 0;
 
@@ -110,9 +107,6 @@ u32 searchFileRecvBuff __attribute__((aligned(64)));
 #endif
 
 // Prototypes for multimodule
-extern int bindInit;
-extern int bindDiskReady;
-extern int bindSearchFile;
 extern int initVersionCdvdfsv;
 extern int initVersionCdvdman;
 extern SifRpcClientData_t clientInit;
@@ -143,11 +137,7 @@ s32 sceCdInit(s32 mode)
         return 0;
     sceSifInitRpc(0);
     CdThreadId     = GetThreadId();
-    bindSearchFile = -1;
-    bindNCmd       = -1;
-    bindSCmd       = -1;
-    bindDiskReady  = -1;
-    bindInit       = -1;
+    memset(&clientInit, 0, sizeof(clientInit));
 
     while (1) {
         if (sceSifBindRpc(&clientInit, CD_SERVER_INIT, 0) < 0) {
@@ -159,7 +149,6 @@ s32 sceCdInit(s32 mode)
         nopdelay();
     }
 
-    bindInit = 0;
     initMode = mode;
     if (sceSifCallRpc(&clientInit, 0, 0, &initMode, sizeof(initMode), &cdInitRecvBuff, sizeof(cdInitRecvBuff), 0, 0) < 0)
         return 0;
@@ -169,9 +158,9 @@ s32 sceCdInit(s32 mode)
         if (CdDebug > 0)
             printf("Libcdvd Exit\n");
         _CdSemaExit();
-        nCmdSemaId     = -1;
-        sCmdSemaId     = -1;
-        callbackSemaId = -1;
+        nCmdSemaId     = 0;
+        sCmdSemaId     = 0;
+        callbackSemaId = 0;
     } else {
         _CdSemaInit();
     }
@@ -210,7 +199,9 @@ s32 sceCdSearchFile(sceCdlFILE *file, const char *name)
         return 0;
     }
     sceSifInitRpc(0);
-    if (bindSearchFile < 0) {
+    if (HasIopRebootedSinceLastCall())
+        memset(&clientSearchFile, 0, sizeof(clientSearchFile));
+    if (!clientSearchFile.server) {
         while (1) {
             if (sceSifBindRpc(&clientSearchFile, CD_SERVER_SEARCHFILE, 0) < 0) {
                 if (CdDebug > 0)
@@ -221,11 +212,9 @@ s32 sceCdSearchFile(sceCdlFILE *file, const char *name)
 
             nopdelay();
         }
-        bindSearchFile = 0;
     }
 
-    strncpy(searchFileSendBuff.name, name, 255);
-    searchFileSendBuff.name[255] = '\0';
+    strlcpy(searchFileSendBuff.name, name, sizeof(searchFileSendBuff.name));
     searchFileSendBuff.dest      = &searchFileSendBuff;
 
     if (CdDebug > 0)
@@ -269,7 +258,9 @@ s32 sceCdDiskReady(s32 mode)
     }
 
     sceSifInitRpc(0);
-    if (bindDiskReady < 0) {
+    if (HasIopRebootedSinceLastCall())
+        memset(&clientDiskReady, 0, sizeof(clientDiskReady));
+    if (!clientDiskReady.server) {
         while (1) {
             if (sceSifBindRpc(&clientDiskReady, CD_SERVER_DISKREADY, 0) < 0) {
                 if (CdDebug > 0)
@@ -281,7 +272,6 @@ s32 sceCdDiskReady(s32 mode)
             nopdelay();
         }
     }
-    bindDiskReady = 0;
     diskReadyMode = mode;
 
     if (sceSifCallRpc(&clientDiskReady, 0, 0, &diskReadyMode, 4, sCmdRecvBuff, 4, NULL, NULL) < 0) {
@@ -302,17 +292,23 @@ void _CdSemaInit(void)
     struct t_ee_sema semaParam;
 
     // return if both semaphores are already inited
-    if (nCmdSemaId != -1 && sCmdSemaId != -1)
+    if (nCmdSemaId != 0 && sCmdSemaId != 0)
         return;
 
     semaParam.init_count = 1;
     semaParam.max_count  = 1;
     semaParam.option     = 0;
     nCmdSemaId           = CreateSema(&semaParam);
+    if (nCmdSemaId < 0)
+        nCmdSemaId = 0;
     sCmdSemaId           = CreateSema(&semaParam);
+    if (sCmdSemaId < 0)
+        sCmdSemaId = 0;
 
     semaParam.init_count = 0;
     callbackSemaId       = CreateSema(&semaParam);
+    if (callbackSemaId < 0)
+        callbackSemaId = 0;
 
     cbSema = 0;
 }
